@@ -29,8 +29,6 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
-      {/* <Header /> */}
-      
       {/* Hero Section */}
       {/* <div className="bg-gradient-to-r from-primary-600 to-primary-800 text-white py-16">
         <div className="container mx-auto px-4 text-center">

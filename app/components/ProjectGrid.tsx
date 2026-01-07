@@ -80,7 +80,7 @@ export default function ProjectGrid({ onPurchase }: ProjectGridProps) {
       {/* Header */}
       <div className="mb-12 text-center">
         <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-          RSS Academic <span className="text-primary-600">Projects</span> Marketplace
+          Radiant Software Academic <span className="text-primary-600">Projects</span> Marketplace
         </h1>
         <p className="text-xl text-gray-600 max-w-3xl mx-auto">
           Discover ready-to-use academic projects with complete documentation and source code

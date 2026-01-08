@@ -1,8 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ShoppingBag, GraduationCap, Code, Rocket, Database, Star, Award, Zap, Download, Eye, Calendar } from 'lucide-react';
-
+import { ShoppingBag, GraduationCap, Code, Rocket, Database, Star, Award, Zap, Download, Eye, Calendar, X, FileText, Tag, Globe, User, Clock } from 'lucide-react';
+import Razorpay from 'razorpay';
+declare global {
+  interface Window {
+    Razorpay: any;
+  }
+}
 interface Project {
   id: number;
   title: string;
@@ -14,11 +19,23 @@ interface Project {
   code_files: string | null;
 }
 
-export default function HomeContent() {
+interface HeaderProps {
+  currentView: 'home' | 'projects' | 'categories' | 'freeprojects';
+  setCurrentView: (view: 'home' | 'projects' | 'categories' | 'freeprojects') => void;
+}
+
+export default function HomeContent({ currentView, setCurrentView }: HeaderProps) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  const [paymentStatus, setPaymentStatus] = useState<'pending' | 'success' | 'failed'>('pending');
+const [downloadData, setDownloadData] = useState<{
+  download_link?: string;
+  payment_id?: string;
+  order_id?: string;
+} | null>(null);
   useEffect(() => {
     fetchProjects();
   }, []);
@@ -66,6 +83,192 @@ export default function HomeContent() {
     return `Rs.${priceNum}/-`;
   };
 
+  const handleViewDetails = (project: Project) => {
+    setSelectedProject(project);
+    setIsDetailsModalOpen(true);
+  };
+
+  const handleBrowseProjects = () => {
+    setCurrentView('projects');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleViewFreeProjects = () => {
+    setCurrentView('freeprojects');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleCategoryClick = () => {
+    setCurrentView('categories');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handlePurchase = async (project: Project) => {
+  if (parseFloat(project.price) === 0) {
+    // Handle free download
+    setPaymentStatus('success');
+    setDownloadData({
+      download_link: `https://academicprojects.org/download.php?project_id=${project.id}&type=free`,
+      payment_id: `FREE_${Date.now()}`,
+      order_id: `FREE_ORDER_${Date.now()}`
+    });
+    alert(`Downloading free project: ${project.title}`);
+  } else {
+    try {
+      setPaymentStatus('pending');
+      
+      // Step 1: Create order on your backend
+      const orderResponse = await fetch('https://academicprojects.org/api/create-order.php', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          project_id: project.id,
+          project_title: project.title,
+          amount: parseFloat(project.price),
+          name: 'Customer Name',
+          email: 'customer@email.com'
+        })
+      });
+
+      const orderData = await orderResponse.json();
+
+      if (!orderData.success) {
+        throw new Error(orderData.error || 'Failed to create order');
+      }
+
+      // Step 2: Load Razorpay script dynamically
+      const loadRazorpayScript = () => {
+        return new Promise((resolve) => {
+          if (window.Razorpay) {
+            resolve(true);
+            return;
+          }
+          const script = document.createElement('script');
+          script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+          script.onload = () => resolve(true);
+          script.onerror = () => resolve(false);
+          document.body.appendChild(script);
+        });
+      };
+
+      if (!window.Razorpay) {
+        const scriptLoaded = await loadRazorpayScript();
+        if (!scriptLoaded) {
+          throw new Error('Failed to load Razorpay SDK');
+        }
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+
+      // Step 3: Open Razorpay checkout
+      const options = {
+        key: orderData.key_id,
+        amount: orderData.amount,
+        currency: orderData.currency,
+        name: 'Academic Projects',
+        description: `Purchase: ${project.title}`,
+        image: '/logo.png',
+        order_id: orderData.order_id,
+        handler: async function (response: any) {
+          try {
+            // Step 4: Verify payment on your backend
+            const verifyResponse = await fetch('https://academicprojects.org/api/verify-payment.php', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature
+              })
+            });
+
+            const verifyData = await verifyResponse.json();
+
+            if (verifyData.success) {
+              // Payment successful - update state
+              setPaymentStatus('success');
+              setDownloadData({
+                download_link: verifyData.download_link,
+                payment_id: response.razorpay_payment_id,
+                order_id: response.razorpay_order_id
+              });
+              
+              // Don't close modal - let user see download button
+              alert('Payment successful! You can now download the project from the modal.');
+            } else {
+              setPaymentStatus('failed');
+              alert('Payment verification failed: ' + verifyData.error);
+            }
+          } catch (error) {
+            setPaymentStatus('failed');
+            console.error('Verification error:', error);
+            alert('Error verifying payment. Please contact support.');
+          }
+        },
+        prefill: {
+          name: 'Customer Name',
+          email: 'customer@email.com',
+          contact: '9999999999'
+        },
+        notes: {
+          project_id: project.id,
+          project_title: project.title
+        },
+        theme: {
+          color: '#667eea'
+        },
+        modal: {
+          ondismiss: function() {
+            console.log('Payment modal closed');
+            setPaymentStatus('pending');
+          }
+        }
+      };
+
+      if (typeof window.Razorpay === 'function') {
+        const rzp = new window.Razorpay(options);
+        rzp.open();
+      } else {
+        throw new Error('Razorpay SDK not loaded properly');
+      }
+
+    } catch (error) {
+      setPaymentStatus('failed');
+      console.error('Payment error:', error);
+      alert('Payment failed. Please try again.');
+    }
+  }
+};
+
+// Add a function to handle download
+const handleDownload = () => {
+  if (downloadData?.download_link) {
+    // Open download in new tab
+    window.open(downloadData.download_link, '_blank');
+    
+    // You can also trigger a direct download
+    // const link = document.createElement('a');
+    // link.href = downloadData.download_link;
+    // link.download = selectedProject?.title || 'project';
+    // document.body.appendChild(link);
+    // link.click();
+    // document.body.removeChild(link);
+    
+    // Optional: Log download or show confirmation
+    console.log(`Downloading project with Payment ID: ${downloadData.payment_id}`);
+  }
+};
+
+// Add a function to reset payment state when modal closes
+const handleCloseModal = () => {
+  setIsDetailsModalOpen(false);
+  setPaymentStatus('pending');
+  setDownloadData(null);
+};
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white flex items-center justify-center">
@@ -109,10 +312,16 @@ export default function HomeContent() {
               Complete, ready-to-run projects with source code, documentation, and database
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <button className="bg-white text-blue-600 px-8 py-3 rounded-full font-semibold text-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+              <button 
+                onClick={handleBrowseProjects}
+                className="bg-white text-blue-600 px-8 py-3 rounded-full font-semibold text-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1"
+              >
                 Browse Projects
               </button>
-              <button className="bg-transparent border-2 border-white px-8 py-3 rounded-full font-semibold text-lg hover:bg-white/10 transition-all duration-300">
+              <button 
+                onClick={handleViewFreeProjects}
+                className="bg-transparent border-2 border-white px-8 py-3 rounded-full font-semibold text-lg hover:bg-white/10 transition-all duration-300"
+              >
                 View Free Projects
               </button>
             </div>
@@ -191,7 +400,10 @@ export default function HomeContent() {
                   </div>
                 </div>
                 <div className="px-6 py-4 bg-gray-50 border-t border-gray-100">
-                  <button className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 rounded-xl font-semibold hover:shadow-lg transition-all duration-300">
+                  <button 
+                    onClick={() => handleViewDetails(project)}
+                    className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 rounded-xl font-semibold hover:shadow-lg transition-all duration-300"
+                  >
                     View Details
                   </button>
                 </div>
@@ -224,7 +436,10 @@ export default function HomeContent() {
                 <p className="text-gray-600 mb-4">
                   Complete projects with source code, documentation, and database files.
                 </p>
-                <button className="text-blue-600 font-semibold hover:text-blue-700">
+                <button 
+                  onClick={handleCategoryClick}
+                  className="text-blue-600 font-semibold hover:text-blue-700"
+                >
                   View Projects →
                 </button>
               </div>
@@ -300,6 +515,219 @@ export default function HomeContent() {
           </div>
         </div>
       </div>
+
+      {/* Project Details Modal */}
+      {/* Project Details Modal */}
+{isDetailsModalOpen && selectedProject && (
+  <>
+    {/* Background overlay */}
+    <div 
+      className="fixed inset-0 bg-black/30 bg-opacity-100 z-[9999]"
+      onClick={() => setIsDetailsModalOpen(false)}
+    ></div>
+    
+    {/* Modal content */}
+    <div className="fixed inset-0 flex items-center justify-center p-4 z-[10000]">
+      <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+        {/* Modal header */}
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-white">
+          <div className="flex items-center space-x-3">
+            <div className="bg-blue-100 p-2 rounded-lg">
+              <FileText className="w-6 h-6 text-blue-600" />
+            </div>
+            <h3 className="text-2xl font-bold text-gray-900">
+              Project Details
+            </h3>
+          </div>
+          <button
+            onClick={() => setIsDetailsModalOpen(false)}
+            className="text-gray-400 hover:text-gray-500 p-2 rounded-lg hover:bg-gray-100 transition-colors"
+          >
+            <X className="w-6 h-6" />
+          </button>
+        </div>
+
+        {/* Scrollable content */}
+        <div className="overflow-y-auto max-h-[calc(90vh-180px)]">
+          <div className="p-6">
+            <div className="space-y-6">
+              {/* Project header */}
+              <div>
+                <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
+                  <h2 className="text-2xl font-bold text-gray-900">{selectedProject.title}</h2>
+                  <div className={`text-xl font-bold px-4 py-2 rounded-lg ${
+                    parseFloat(selectedProject.price) === 0 
+                      ? 'bg-green-100 text-green-700' 
+                      : 'bg-blue-100 text-blue-700'
+                  }`}>
+                    {getPriceDisplay(selectedProject.price)}
+                  </div>
+                </div>
+                
+                <p className="text-gray-600 text-lg">{selectedProject.description}</p>
+              </div>
+
+              {/* Project details grid */}
+              <div className="grid md:grid-cols-2 gap-6">
+                {/* Left column */}
+                <div className="space-y-6">
+                  {/* Categories */}
+                  <div>
+                    <h4 className="flex items-center text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
+                      <Tag className="w-4 h-4 mr-2" />
+                      Categories
+                    </h4>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedProject.category.split(', ').map((cat, index) => (
+                        <span 
+                          key={index} 
+                          className="bg-blue-50 text-blue-700 px-3 py-1.5 rounded-full text-sm font-medium border border-blue-100"
+                        >
+                          {cat.trim()}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Project info */}
+                  <div className="space-y-4">
+                    <div className="flex items-center text-gray-600">
+                      <Calendar className="w-5 h-5 mr-3 text-gray-400" />
+                      <div>
+                        <div className="font-medium">Date Added</div>
+                        <div className="text-sm">{formatDate(selectedProject.created_at)}</div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center text-gray-600">
+                      <Clock className="w-5 h-5 mr-3 text-gray-400" />
+                      <div>
+                        <div className="font-medium">Availability</div>
+                        <div className="text-sm">Instant Download</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right column */}
+                <div className="space-y-6">
+                  {/* Included files */}
+                  <div>
+                    <h4 className="flex items-center text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
+                      <Download className="w-4 h-4 mr-2" />
+                      Included Files
+                    </h4>
+                    <div className="space-y-3">
+                      {selectedProject.documentation && (
+                        <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+                          <div className="flex items-center">
+                            <FileText className="w-5 h-5 mr-3 text-blue-500" />
+                            <div>
+                              <div className="font-medium">Documentation</div>
+                              <div className="text-sm text-gray-500">PDF file with complete guide</div>
+                            </div>
+                          </div>
+                          <span className="text-sm text-green-600 font-medium">Included</span>
+                        </div>
+                      )}
+                      
+                      {selectedProject.code_files && (
+                        <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+                          <div className="flex items-center">
+                            <Code className="w-5 h-5 mr-3 text-green-500" />
+                            <div>
+                              <div className="font-medium">Source Code</div>
+                              <div className="text-sm text-gray-500">Complete project source files</div>
+                            </div>
+                          </div>
+                          <span className="text-sm text-green-600 font-medium">Included</span>
+                        </div>
+                      )}
+                      
+                      <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+                        <div className="flex items-center">
+                          <Database className="w-5 h-5 mr-3 text-purple-500" />
+                          <div>
+                            <div className="font-medium">Database</div>
+                            <div className="text-sm text-gray-500">SQL files with sample data</div>
+                          </div>
+                        </div>
+                        <span className="text-sm text-green-600 font-medium">Included</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Features */}
+              <div>
+                <h4 className="flex items-center text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
+                  <Award className="w-4 h-4 mr-2" />
+                  Project Features
+                </h4>
+                <div className="grid sm:grid-cols-2 gap-3">
+                  <div className="flex items-center text-gray-700">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
+                    Complete source code with comments
+                  </div>
+                  <div className="flex items-center text-gray-700">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
+                    Step-by-step installation guide
+                  </div>
+                  <div className="flex items-center text-gray-700">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
+                    Database schema and sample data
+                  </div>
+                  <div className="flex items-center text-gray-700">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
+                    Responsive design (where applicable)
+                  </div>
+                  <div className="flex items-center text-gray-700">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
+                    Admin panel access
+                  </div>
+                  <div className="flex items-center text-gray-700">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
+                    Free technical support
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Modal footer */}
+        <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
+          <div className="flex flex-col sm:flex-row gap-4">
+            <button
+              onClick={() => handlePurchase(selectedProject)}
+              className={`flex-1 py-3 rounded-xl font-semibold transition-all duration-300 ${
+                parseFloat(selectedProject.price) === 0
+                  ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:shadow-lg'
+                  : 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:shadow-lg'
+              }`}
+            >
+              {paymentStatus==='success' ? (
+                <div className="flex items-center justify-center">
+                  <Download className="w-5 h-5 mr-2" />
+                  Download Now (Free)
+                </div>
+              ) : (
+                `Purchase Now - ${getPriceDisplay(selectedProject.price)}`
+              )}
+            </button>
+            <button
+              onClick={() => setIsDetailsModalOpen(false)}
+              className="flex-1 py-3 rounded-xl font-semibold border-2 border-gray-300 text-gray-700 hover:bg-gray-50 transition-all duration-300"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </>
+)}
     </div>
   );
 }

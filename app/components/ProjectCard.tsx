@@ -13,7 +13,8 @@ interface ProjectCardProps {
 export default function ProjectCard({ project, onPurchase }: ProjectCardProps) {
   const [isHovered, setIsHovered] = useState(false);
 
-  const discountPercentage = project.discounted_price 
+  const discountPercentage = 
+  project.discounted_price 
     ? Math.round(((project.price - project.discounted_price) / project.price) * 100)
     : 0;
 

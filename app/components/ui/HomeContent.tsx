@@ -1,8 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ShoppingBag, GraduationCap, Code, Rocket, Database, Star, Award, Zap, Download, Eye, Calendar, X, FileText, Tag, Globe, User, Clock } from 'lucide-react';
-import Razorpay from 'razorpay';
+import { ShoppingBag, GraduationCap, Code, Rocket, Database, Star, Award, Zap, Download, Eye, Calendar, X, FileText, Tag, Globe, User, Clock, Mail, Phone } from 'lucide-react';
 declare global {
   interface Window {
     Razorpay: any;
@@ -24,6 +23,12 @@ interface HeaderProps {
   setCurrentView: (view: 'home' | 'projects' | 'categories' | 'freeprojects') => void;
 }
 
+interface CustomerInfo {
+  name: string;
+  email: string;
+  phone: string;
+}
+
 export default function HomeContent({ currentView, setCurrentView }: HeaderProps) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
@@ -31,11 +36,18 @@ export default function HomeContent({ currentView, setCurrentView }: HeaderProps
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState<'pending' | 'success' | 'failed'>('pending');
-const [downloadData, setDownloadData] = useState<{
-  download_link?: string;
-  payment_id?: string;
-  order_id?: string;
-} | null>(null);
+  const [downloadData, setDownloadData] = useState<{
+    download_link?: string;
+    payment_id?: string;
+    order_id?: string;
+  } | null>(null);
+  const [customerInfo, setCustomerInfo] = useState<CustomerInfo>({
+    name: '',
+    email: '',
+    phone: ''
+  });
+  const [showCustomerForm, setShowCustomerForm] = useState(false);
+
   useEffect(() => {
     fetchProjects();
   }, []);
@@ -86,6 +98,10 @@ const [downloadData, setDownloadData] = useState<{
   const handleViewDetails = (project: Project) => {
     setSelectedProject(project);
     setIsDetailsModalOpen(true);
+    // Reset states when opening modal
+    setPaymentStatus('pending');
+    setShowCustomerForm(false);
+    setCustomerInfo({ name: '', email: '', phone: '' });
   };
 
   const handleBrowseProjects = () => {
@@ -103,17 +119,127 @@ const [downloadData, setDownloadData] = useState<{
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const downloadFile = (url: string, filename: string) => {
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleDownloadFiles = () => {
+  if (!selectedProject) return;
+  
+  console.log('Downloading files for project:', selectedProject);
+  console.log('Documentation:', selectedProject.documentation);
+  console.log('Code files:', selectedProject.code_files);
+  
+  // Try to download documentation
+  if (selectedProject.documentation) {
+    const docUrl = `https://academicprojects.org/api/uploads/${selectedProject.documentation}`;
+    const docName = `${selectedProject.title.replace(/\s+/g, '_')}_documentation.pdf`;
+    
+    console.log('Attempting to download documentation from:', docUrl);
+    
+    // Method 1: Try direct download
+    const link1 = document.createElement('a');
+    link1.href = docUrl;
+    link1.download = docName;
+    document.body.appendChild(link1);
+    link1.click();
+    document.body.removeChild(link1);
+    
+    // Method 2: Open in new tab as fallback (after a short delay)
+    setTimeout(() => {
+      window.open(docUrl, '_blank');
+    }, 100);
+  }
+  
+  // Try to download source code
+  if (selectedProject.code_files) {
+    const codeUrl = `https://academicprojects.org/api/uploads/${selectedProject.code_files}`;
+    const codeName = `${selectedProject.title.replace(/\s+/g, '_')}_source_code.zip`;
+    
+    console.log('Attempting to download source code from:', codeUrl);
+    
+    // Small delay between downloads
+    setTimeout(() => {
+      const link2 = document.createElement('a');
+      link2.href = codeUrl;
+      link2.download = codeName;
+      document.body.appendChild(link2);
+      link2.click();
+      document.body.removeChild(link2);
+      
+      // Fallback
+      setTimeout(() => {
+        window.open(codeUrl, '_blank');
+      }, 100);
+    }, 300);
+  }
+  
+  // Close modal after download
+  setTimeout(() => {
+    setIsDetailsModalOpen(false);
+    setPaymentStatus('pending');
+    setDownloadData(null);
+    setCustomerInfo({ name: '', email: '', phone: '' });
+    setShowCustomerForm(false);
+  }, 2000);
+};
+
+  const validateCustomerInfo = () => {
+    if (!customerInfo.name.trim()) {
+      alert('Please enter your name');
+      return false;
+    }
+    if (!customerInfo.email.trim()) {
+      alert('Please enter your email');
+      return false;
+    }
+    if (!customerInfo.phone.trim()) {
+      alert('Please enter your phone number');
+      return false;
+    }
+    // Simple email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(customerInfo.email)) {
+      alert('Please enter a valid email address');
+      return false;
+    }
+    return true;
+  };
+
   const handlePurchase = async (project: Project) => {
-  if (parseFloat(project.price) === 0) {
-    // Handle free download
-    setPaymentStatus('success');
-    setDownloadData({
-      download_link: `https://academicprojects.org/download.php?project_id=${project.id}&type=free`,
-      payment_id: `FREE_${Date.now()}`,
-      order_id: `FREE_ORDER_${Date.now()}`
-    });
-    alert(`Downloading free project: ${project.title}`);
-  } else {
+    // For free projects
+    if (parseFloat(project.price) === 0) {
+      if (!validateCustomerInfo()) return;
+      
+      setPaymentStatus('success');
+      setDownloadData({
+        download_link: `https://academicprojects.org/api/uploads`,
+        payment_id: `FREE_${Date.now()}`,
+        order_id: `FREE_ORDER_${Date.now()}`
+      });
+      
+      // Download files immediately for free projects
+      setTimeout(() => {
+        handleDownloadFiles();
+      }, 500);
+      
+      return;
+    }
+
+    // For paid projects - show customer form first
+    if (!showCustomerForm) {
+      setShowCustomerForm(true);
+      return;
+    }
+
+    // Validate customer info for paid projects
+    if (!validateCustomerInfo()) return;
+
     try {
       setPaymentStatus('pending');
       
@@ -127,8 +253,9 @@ const [downloadData, setDownloadData] = useState<{
           project_id: project.id,
           project_title: project.title,
           amount: parseFloat(project.price),
-          name: 'Customer Name',
-          email: 'customer@email.com'
+          name: customerInfo.name,
+          email: customerInfo.email,
+          phone: customerInfo.phone
         })
       });
 
@@ -181,7 +308,10 @@ const [downloadData, setDownloadData] = useState<{
               body: JSON.stringify({
                 razorpay_order_id: response.razorpay_order_id,
                 razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_signature: response.razorpay_signature
+                razorpay_signature: response.razorpay_signature,
+                customer_name: customerInfo.name,
+                customer_email: customerInfo.email,
+                customer_phone: customerInfo.phone
               })
             });
 
@@ -196,8 +326,11 @@ const [downloadData, setDownloadData] = useState<{
                 order_id: response.razorpay_order_id
               });
               
-              // Don't close modal - let user see download button
-              alert('Payment successful! You can now download the project from the modal.');
+              // Download files after successful payment
+              setTimeout(() => {
+                handleDownloadFiles();
+              }, 1000);
+              
             } else {
               setPaymentStatus('failed');
               alert('Payment verification failed: ' + verifyData.error);
@@ -209,13 +342,15 @@ const [downloadData, setDownloadData] = useState<{
           }
         },
         prefill: {
-          name: 'Customer Name',
-          email: 'customer@email.com',
-          contact: '9999999999'
+          name: customerInfo.name,
+          email: customerInfo.email,
+          contact: customerInfo.phone
         },
         notes: {
           project_id: project.id,
-          project_title: project.title
+          project_title: project.title,
+          customer_name: customerInfo.name,
+          customer_email: customerInfo.email
         },
         theme: {
           color: '#667eea'
@@ -240,34 +375,19 @@ const [downloadData, setDownloadData] = useState<{
       console.error('Payment error:', error);
       alert('Payment failed. Please try again.');
     }
-  }
-};
+  };
 
-// Add a function to handle download
-const handleDownload = () => {
-  if (downloadData?.download_link) {
-    // Open download in new tab
-    window.open(downloadData.download_link, '_blank');
-    
-    // You can also trigger a direct download
-    // const link = document.createElement('a');
-    // link.href = downloadData.download_link;
-    // link.download = selectedProject?.title || 'project';
-    // document.body.appendChild(link);
-    // link.click();
-    // document.body.removeChild(link);
-    
-    // Optional: Log download or show confirmation
-    console.log(`Downloading project with Payment ID: ${downloadData.payment_id}`);
-  }
-};
+  const handleCloseModal = () => {
+    setIsDetailsModalOpen(false);
+    setPaymentStatus('pending');
+    setDownloadData(null);
+    setCustomerInfo({ name: '', email: '', phone: '' });
+    setShowCustomerForm(false);
+  };
 
-// Add a function to reset payment state when modal closes
-const handleCloseModal = () => {
-  setIsDetailsModalOpen(false);
-  setPaymentStatus('pending');
-  setDownloadData(null);
-};
+  const handleBackToProject = () => {
+    setShowCustomerForm(false);
+  };
 
   if (loading) {
     return (
@@ -517,217 +637,352 @@ const handleCloseModal = () => {
       </div>
 
       {/* Project Details Modal */}
-      {/* Project Details Modal */}
-{isDetailsModalOpen && selectedProject && (
-  <>
-    {/* Background overlay */}
-    <div 
-      className="fixed inset-0 bg-black/30 bg-opacity-100 z-[9999]"
-      onClick={() => setIsDetailsModalOpen(false)}
-    ></div>
-    
-    {/* Modal content */}
-    <div className="fixed inset-0 flex items-center justify-center p-4 z-[10000]">
-      <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
-        {/* Modal header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-white">
-          <div className="flex items-center space-x-3">
-            <div className="bg-blue-100 p-2 rounded-lg">
-              <FileText className="w-6 h-6 text-blue-600" />
-            </div>
-            <h3 className="text-2xl font-bold text-gray-900">
-              Project Details
-            </h3>
-          </div>
-          <button
-            onClick={() => setIsDetailsModalOpen(false)}
-            className="text-gray-400 hover:text-gray-500 p-2 rounded-lg hover:bg-gray-100 transition-colors"
-          >
-            <X className="w-6 h-6" />
-          </button>
-        </div>
-
-        {/* Scrollable content */}
-        <div className="overflow-y-auto max-h-[calc(90vh-180px)]">
-          <div className="p-6">
-            <div className="space-y-6">
-              {/* Project header */}
-              <div>
-                <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
-                  <h2 className="text-2xl font-bold text-gray-900">{selectedProject.title}</h2>
-                  <div className={`text-xl font-bold px-4 py-2 rounded-lg ${
-                    parseFloat(selectedProject.price) === 0 
-                      ? 'bg-green-100 text-green-700' 
-                      : 'bg-blue-100 text-blue-700'
-                  }`}>
-                    {getPriceDisplay(selectedProject.price)}
+      {isDetailsModalOpen && selectedProject && (
+        <>
+          {/* Background overlay */}
+          <div 
+            className="fixed inset-0 bg-black/30 bg-opacity-100 z-[9999]"
+            onClick={handleCloseModal}
+          ></div>
+          
+          {/* Modal content */}
+          <div className="fixed inset-0 flex items-center justify-center p-4 z-[10000]">
+            <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+              {/* Modal header */}
+              <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-white">
+                <div className="flex items-center space-x-3">
+                  <div className="bg-blue-100 p-2 rounded-lg">
+                    <FileText className="w-6 h-6 text-blue-600" />
                   </div>
+                  <h3 className="text-2xl font-bold text-gray-900">
+                    {showCustomerForm ? 'Enter Your Details' : 'Project Details'}
+                  </h3>
                 </div>
-                
-                <p className="text-gray-600 text-lg">{selectedProject.description}</p>
+                <button
+                  onClick={handleCloseModal}
+                  className="text-gray-400 hover:text-gray-500 p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                >
+                  <X className="w-6 h-6" />
+                </button>
               </div>
 
-              {/* Project details grid */}
-              <div className="grid md:grid-cols-2 gap-6">
-                {/* Left column */}
-                <div className="space-y-6">
-                  {/* Categories */}
-                  <div>
-                    <h4 className="flex items-center text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
-                      <Tag className="w-4 h-4 mr-2" />
-                      Categories
-                    </h4>
-                    <div className="flex flex-wrap gap-2">
-                      {selectedProject.category.split(', ').map((cat, index) => (
-                        <span 
-                          key={index} 
-                          className="bg-blue-50 text-blue-700 px-3 py-1.5 rounded-full text-sm font-medium border border-blue-100"
-                        >
-                          {cat.trim()}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Project info */}
-                  <div className="space-y-4">
-                    <div className="flex items-center text-gray-600">
-                      <Calendar className="w-5 h-5 mr-3 text-gray-400" />
-                      <div>
-                        <div className="font-medium">Date Added</div>
-                        <div className="text-sm">{formatDate(selectedProject.created_at)}</div>
+              {/* Scrollable content */}
+              <div className="overflow-y-auto max-h-[calc(90vh-180px)]">
+                <div className="p-6">
+                  {paymentStatus === 'success' ? (
+                    // Success message
+                    <div className="text-center py-8">
+                      <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <svg className="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                      </div>
+                      <h3 className="text-2xl font-bold text-gray-900 mb-2">Download Started!</h3>
+                      <p className="text-gray-600 mb-6">
+                        Your files are being downloaded. The modal will close automatically.
+                      </p>
+                      <div className="animate-pulse">
+                        <div className="flex items-center justify-center space-x-2">
+                          <Download className="w-5 h-5 text-blue-600" />
+                          <span className="text-blue-600 font-medium">Downloading files...</span>
+                        </div>
                       </div>
                     </div>
-                    
-                    <div className="flex items-center text-gray-600">
-                      <Clock className="w-5 h-5 mr-3 text-gray-400" />
+                  ) : showCustomerForm ? (
+                    // Customer form
+                    <div className="space-y-6">
                       <div>
-                        <div className="font-medium">Availability</div>
-                        <div className="text-sm">Instant Download</div>
+                        <h4 className="text-lg font-bold text-gray-900 mb-4">Enter Your Contact Details</h4>
+                        <p className="text-gray-600 mb-6">We need your information to process the order and send download links.</p>
+                      </div>
+
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <div className="flex items-center">
+                              <User className="w-4 h-4 mr-2" />
+                              Full Name *
+                            </div>
+                          </label>
+                          <input
+                            type="text"
+                            value={customerInfo.name}
+                            onChange={(e) => setCustomerInfo({...customerInfo, name: e.target.value})}
+                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            placeholder="Enter your full name"
+                            required
+                          />
+                        </div>
+                        
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <div className="flex items-center">
+                              <Mail className="w-4 h-4 mr-2" />
+                              Email Address *
+                            </div>
+                          </label>
+                          <input
+                            type="email"
+                            value={customerInfo.email}
+                            onChange={(e) => setCustomerInfo({...customerInfo, email: e.target.value})}
+                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            placeholder="Enter your email address"
+                            required
+                          />
+                        </div>
+                        
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <div className="flex items-center">
+                              <Phone className="w-4 h-4 mr-2" />
+                              Phone Number *
+                            </div>
+                          </label>
+                          <input
+                            type="tel"
+                            value={customerInfo.phone}
+                            onChange={(e) => setCustomerInfo({...customerInfo, phone: e.target.value})}
+                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            placeholder="Enter your phone number"
+                            required
+                          />
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </div>
+                  ) : (
+                    // Project details
+                    <div className="space-y-6">
+                      {/* Project header */}
+                      <div>
+                        <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
+                          <h2 className="text-2xl font-bold text-gray-900">{selectedProject.title}</h2>
+                          <div className={`text-xl font-bold px-4 py-2 rounded-lg ${
+                            parseFloat(selectedProject.price) === 0 
+                              ? 'bg-green-100 text-green-700' 
+                              : 'bg-blue-100 text-blue-700'
+                          }`}>
+                            {getPriceDisplay(selectedProject.price)}
+                          </div>
+                        </div>
+                        
+                        <p className="text-gray-600 text-lg">{selectedProject.description}</p>
+                      </div>
 
-                {/* Right column */}
-                <div className="space-y-6">
-                  {/* Included files */}
-                  <div>
-                    <h4 className="flex items-center text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
-                      <Download className="w-4 h-4 mr-2" />
-                      Included Files
-                    </h4>
-                    <div className="space-y-3">
-                      {selectedProject.documentation && (
-                        <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
-                          <div className="flex items-center">
-                            <FileText className="w-5 h-5 mr-3 text-blue-500" />
-                            <div>
-                              <div className="font-medium">Documentation</div>
-                              <div className="text-sm text-gray-500">PDF file with complete guide</div>
-                            </div>
-                          </div>
-                          <span className="text-sm text-green-600 font-medium">Included</span>
-                        </div>
-                      )}
-                      
-                      {selectedProject.code_files && (
-                        <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
-                          <div className="flex items-center">
-                            <Code className="w-5 h-5 mr-3 text-green-500" />
-                            <div>
-                              <div className="font-medium">Source Code</div>
-                              <div className="text-sm text-gray-500">Complete project source files</div>
-                            </div>
-                          </div>
-                          <span className="text-sm text-green-600 font-medium">Included</span>
-                        </div>
-                      )}
-                      
-                      <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
-                        <div className="flex items-center">
-                          <Database className="w-5 h-5 mr-3 text-purple-500" />
+                      {/* Project details grid */}
+                      <div className="grid md:grid-cols-2 gap-6">
+                        {/* Left column */}
+                        <div className="space-y-6">
+                          {/* Categories */}
                           <div>
-                            <div className="font-medium">Database</div>
-                            <div className="text-sm text-gray-500">SQL files with sample data</div>
+                            <h4 className="flex items-center text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
+                              <Tag className="w-4 h-4 mr-2" />
+                              Categories
+                            </h4>
+                            <div className="flex flex-wrap gap-2">
+                              {selectedProject.category.split(', ').map((cat, index) => (
+                                <span 
+                                  key={index} 
+                                  className="bg-blue-50 text-blue-700 px-3 py-1.5 rounded-full text-sm font-medium border border-blue-100"
+                                >
+                                  {cat.trim()}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Project info */}
+                          <div className="space-y-4">
+                            <div className="flex items-center text-gray-600">
+                              <Calendar className="w-5 h-5 mr-3 text-gray-400" />
+                              <div>
+                                <div className="font-medium">Date Added</div>
+                                <div className="text-sm">{formatDate(selectedProject.created_at)}</div>
+                              </div>
+                            </div>
+                            
+                            <div className="flex items-center text-gray-600">
+                              <Clock className="w-5 h-5 mr-3 text-gray-400" />
+                              <div>
+                                <div className="font-medium">Availability</div>
+                                <div className="text-sm">Instant Download</div>
+                              </div>
+                            </div>
                           </div>
                         </div>
-                        <span className="text-sm text-green-600 font-medium">Included</span>
+
+                        {/* Right column */}
+                        <div className="space-y-6">
+                          {/* Included files */}
+                          <div>
+                            <h4 className="flex items-center text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
+                              <Download className="w-4 h-4 mr-2" />
+                              Included Files
+                            </h4>
+                            <div className="space-y-3">
+                              {selectedProject.documentation && (
+                                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+                                  <div className="flex items-center">
+                                    <FileText className="w-5 h-5 mr-3 text-blue-500" />
+                                    <div>
+                                      <div className="font-medium">Documentation</div>
+                                      <div className="text-sm text-gray-500">PDF file with complete guide</div>
+                                    </div>
+                                  </div>
+                                  <span className="text-sm text-green-600 font-medium">Included</span>
+                                </div>
+                              )}
+                              
+                              {selectedProject.code_files && (
+                                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+                                  <div className="flex items-center">
+                                    <Code className="w-5 h-5 mr-3 text-green-500" />
+                                    <div>
+                                      <div className="font-medium">Source Code</div>
+                                      <div className="text-sm text-gray-500">Complete project source files</div>
+                                    </div>
+                                  </div>
+                                  <span className="text-sm text-green-600 font-medium">Included</span>
+                                </div>
+                              )}
+                              
+                              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+                                <div className="flex items-center">
+                                  <Database className="w-5 h-5 mr-3 text-purple-500" />
+                                  <div>
+                                    <div className="font-medium">Database</div>
+                                    <div className="text-sm text-gray-500">SQL files with sample data</div>
+                                  </div>
+                                </div>
+                                <span className="text-sm text-green-600 font-medium">Included</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Features */}
+                      <div>
+                        <h4 className="flex items-center text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
+                          <Award className="w-4 h-4 mr-2" />
+                          Project Features
+                        </h4>
+                        <div className="grid sm:grid-cols-2 gap-3">
+                          <div className="flex items-center text-gray-700">
+                            <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
+                            Complete source code with comments
+                          </div>
+                          <div className="flex items-center text-gray-700">
+                            <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
+                            Step-by-step installation guide
+                          </div>
+                          <div className="flex items-center text-gray-700">
+                            <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
+                            Database schema and sample data
+                          </div>
+                          <div className="flex items-center text-gray-700">
+                            <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
+                            Responsive design (where applicable)
+                          </div>
+                          <div className="flex items-center text-gray-700">
+                            <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
+                            Admin panel access
+                          </div>
+                          <div className="flex items-center text-gray-700">
+                            <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
+                            Free technical support
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               </div>
 
-              {/* Features */}
-              <div>
-                <h4 className="flex items-center text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
-                  <Award className="w-4 h-4 mr-2" />
-                  Project Features
-                </h4>
-                <div className="grid sm:grid-cols-2 gap-3">
-                  <div className="flex items-center text-gray-700">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
-                    Complete source code with comments
+              {/* Modal footer */}
+              <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
+                {paymentStatus === 'pending' ? (
+                  showCustomerForm ? (
+                    // Customer form buttons
+                    <div className="flex flex-col sm:flex-row gap-4">
+                      <button
+                        onClick={handleBackToProject}
+                        className="flex-1 py-3 rounded-xl font-semibold border-2 border-gray-300 text-gray-700 hover:bg-gray-50 transition-all duration-300"
+                      >
+                        Back to Project
+                      </button>
+                      <button
+                        onClick={() => selectedProject && handlePurchase(selectedProject)}
+                        className={`flex-1 py-3 rounded-xl font-semibold transition-all duration-300 ${
+                          parseFloat(selectedProject.price) === 0
+                            ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:shadow-lg'
+                            : 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:shadow-lg'
+                        }`}
+                      >
+                        {parseFloat(selectedProject.price) === 0 ? (
+                          <div className="flex items-center justify-center">
+                            <Download className="w-5 h-5 mr-2" />
+                            Download Now (Free)
+                          </div>
+                        ) : (
+                          'Proceed to Payment'
+                        )}
+                      </button>
+                    </div>
+                  ) : (
+                    // Initial purchase button
+                    <div className="flex flex-col sm:flex-row gap-4">
+                      <button
+                        onClick={() => selectedProject && handlePurchase(selectedProject)}
+                        className={`flex-1 py-3 rounded-xl font-semibold transition-all duration-300 ${
+                          parseFloat(selectedProject.price) === 0
+                            ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:shadow-lg'
+                            : 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:shadow-lg'
+                        }`}
+                      >
+                        {parseFloat(selectedProject.price) === 0 ? (
+                          <div className="flex items-center justify-center">
+                            <Download className="w-5 h-5 mr-2" />
+                            Download Now (Free)
+                          </div>
+                        ) : (
+                          `Purchase Now - ${getPriceDisplay(selectedProject.price)}`
+                        )}
+                      </button>
+                      <button
+                        onClick={handleCloseModal}
+                        className="flex-1 py-3 rounded-xl font-semibold border-2 border-gray-300 text-gray-700 hover:bg-gray-50 transition-all duration-300"
+                      >
+                        Close
+                      </button>
+                    </div>
+                  )
+                ) : paymentStatus === 'success' ? (
+                  // Success state (auto-closing)
+                  <div className="text-center">
+                    <p className="text-green-600 font-medium">Download complete! Modal will close shortly...</p>
                   </div>
-                  <div className="flex items-center text-gray-700">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
-                    Step-by-step installation guide
+                ) : (
+                  // Failed payment state
+                  <div className="flex flex-col sm:flex-row gap-4">
+                    <button
+                      onClick={() => selectedProject && handlePurchase(selectedProject)}
+                      className="flex-1 py-3 rounded-xl font-semibold bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:shadow-lg transition-all duration-300"
+                    >
+                      Try Again
+                    </button>
+                    <button
+                      onClick={handleCloseModal}
+                      className="flex-1 py-3 rounded-xl font-semibold border-2 border-gray-300 text-gray-700 hover:bg-gray-50 transition-all duration-300"
+                    >
+                      Close
+                    </button>
                   </div>
-                  <div className="flex items-center text-gray-700">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
-                    Database schema and sample data
-                  </div>
-                  <div className="flex items-center text-gray-700">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
-                    Responsive design (where applicable)
-                  </div>
-                  <div className="flex items-center text-gray-700">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
-                    Admin panel access
-                  </div>
-                  <div className="flex items-center text-gray-700">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
-                    Free technical support
-                  </div>
-                </div>
+                )}
               </div>
             </div>
           </div>
-        </div>
-
-        {/* Modal footer */}
-        <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <button
-              onClick={() => handlePurchase(selectedProject)}
-              className={`flex-1 py-3 rounded-xl font-semibold transition-all duration-300 ${
-                parseFloat(selectedProject.price) === 0
-                  ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:shadow-lg'
-                  : 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:shadow-lg'
-              }`}
-            >
-              {paymentStatus==='success' ? (
-                <div className="flex items-center justify-center">
-                  <Download className="w-5 h-5 mr-2" />
-                  Download Now (Free)
-                </div>
-              ) : (
-                `Purchase Now - ${getPriceDisplay(selectedProject.price)}`
-              )}
-            </button>
-            <button
-              onClick={() => setIsDetailsModalOpen(false)}
-              className="flex-1 py-3 rounded-xl font-semibold border-2 border-gray-300 text-gray-700 hover:bg-gray-50 transition-all duration-300"
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </>
-)}
+        </>
+      )}
     </div>
   );
 }

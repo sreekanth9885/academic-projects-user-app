@@ -4,22 +4,46 @@ import { useState, useEffect } from 'react';
 import { Download, Eye, Calendar, Tag, DollarSign } from 'lucide-react';
 import { API_BASE_URL, Project } from '@/app/lib/types';
 import { getPriceDisplay } from '@/app/lib/utils';
+import { useProjectPurchase } from '@/app/hooks/useProjectPurchase';
+import ProjectModal from './home-content/ProjectModal';
 
 export default function ProjectsContent() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  const {
+    paymentStatus,
+    customerInfo,
+    showCustomerForm,
+    setCustomerInfo,
+    setShowCustomerForm,
+    setPaymentStatus,
+    handlePurchase
+  } = useProjectPurchase();
 
   useEffect(() => {
     fetchProjects();
   }, []);
+  useEffect(() => {
+  if (paymentStatus === 'success') {
+    const timer = setTimeout(() => {
+      setIsDetailsModalOpen(false);
+      setPaymentStatus('pending');
+      setCustomerInfo({ name: '', email: '', phone: '' });
+      setShowCustomerForm(false);
+    }, 1500); // allow download to start
 
+    return () => clearTimeout(timer);
+  }
+}, [paymentStatus]);
   const fetchProjects = async () => {
     try {
       setLoading(true);
       const response = await fetch(`${API_BASE_URL}/projects.php`);
       const data = await response.json();
-      
+
       if (data.status === 'success') {
         setProjects(data.data);
       } else {
@@ -35,14 +59,19 @@ export default function ProjectsContent() {
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'short', 
-      day: 'numeric' 
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
     });
   };
+  const handleViewDetails = (project: Project) => {
+    setSelectedProject(project);
+    setIsDetailsModalOpen(true);
+    setPaymentStatus('pending');
+    setShowCustomerForm(false);
+  };
 
-  
 
   const handleDownload = (project: Project) => {
     if (project.price === 0) {
@@ -72,7 +101,7 @@ export default function ProjectsContent() {
           <div className="text-red-500 text-4xl mb-4">⚠️</div>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Error Loading Projects</h2>
           <p className="text-gray-600 mb-4">{error}</p>
-          <button 
+          <button
             onClick={fetchProjects}
             className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-lg font-semibold hover:shadow-lg transition-all duration-300"
           >
@@ -122,24 +151,23 @@ export default function ProjectsContent() {
                         </span>
                       )}
                     </div>
-                    <div className={`text-lg font-bold px-3 py-1 rounded-lg ${
-                      project.price === 0 
-                        ? 'bg-green-100 text-green-700' 
+                    <div className={`text-lg font-bold px-3 py-1 rounded-lg ${project.price === 0
+                        ? 'bg-green-100 text-green-700'
                         : 'bg-blue-100 text-blue-700'
-                    }`}>
+                      }`}>
                       {getPriceDisplay(project.price)}
                     </div>
                   </div>
-                  
+
                   <h3 className="text-xl font-bold text-gray-900 mb-3 line-clamp-1">{project.title}</h3>
                   <p className="text-gray-600 mb-4 line-clamp-2 h-12">{project.description}</p>
-                  
+
                   <div className="space-y-3 mb-6">
                     <div className="flex items-center text-sm text-gray-500">
                       <Calendar className="w-4 h-4 mr-2" />
                       Added: {formatDate(project.created_at)}
                     </div>
-                    
+
                     <div className="flex items-center space-x-4 text-sm">
                       {project.documentation && (
                         <div className="flex items-center text-blue-600">
@@ -155,22 +183,33 @@ export default function ProjectsContent() {
                       )}
                     </div>
                   </div>
-                  
+
                   <button
-                    onClick={() => handleDownload(project)}
-                    className={`w-full py-3 rounded-xl font-semibold hover:shadow-lg transition-all duration-300 ${
-                      project.price === 0
+                    onClick={() => handleViewDetails(project)}
+                    className={`w-full py-3 rounded-xl font-semibold hover:shadow-lg transition-all duration-300 ${project.price === 0
                         ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white'
                         : 'bg-gradient-to-r from-blue-600 to-purple-600 text-white'
-                    }`}
+                      }`}
                   >
-                    {project.price === 0 ? 'Download Free' : 'Purchase Now'}
+                    {project.price === 0 ? 'Download Free' : 'View Details'}
                   </button>
                 </div>
               </div>
             ))}
           </div>
         )}
+        <ProjectModal
+          selectedProject={selectedProject}
+          isOpen={isDetailsModalOpen}
+          paymentStatus={paymentStatus}
+          customerInfo={customerInfo}
+          showCustomerForm={showCustomerForm}
+          onClose={() => setIsDetailsModalOpen(false)}
+          onPurchase={handlePurchase}
+          onBackToProject={() => setShowCustomerForm(false)}
+          onCustomerInfoChange={setCustomerInfo}
+          onShowCustomerForm={setShowCustomerForm}
+        />
 
         {/* Stats Section */}
         {projects.length > 0 && (

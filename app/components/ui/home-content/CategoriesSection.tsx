@@ -33,7 +33,7 @@ const CategoriesSection: React.FC<CategoriesSectionProps> = ({ onCategoryClick }
               </p>
               <button 
                 onClick={onCategoryClick}
-                className="text-blue-600 font-semibold hover:text-blue-700"
+                className="text-blue-600 font-semibold hover:text-blue-700 cursor-pointer"
               >
                 View Projects →
               </button>

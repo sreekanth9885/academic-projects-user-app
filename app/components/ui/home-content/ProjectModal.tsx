@@ -278,13 +278,13 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
           <div className="flex flex-col sm:flex-row gap-4">
             <button
               onClick={onBackToProject}
-              className="flex-1 py-3 rounded-xl font-semibold border-2 border-gray-300 text-gray-700 hover:bg-gray-50 transition-all duration-300"
+              className="flex-1 py-3 rounded-xl font-semibold border-2 border-gray-300 text-gray-700 hover:bg-gray-50 transition-all duration-300 cursor-pointer"
             >
               Back to Project
             </button>
             <button
               onClick={handlePurchaseClick}
-              className={`flex-1 py-3 rounded-xl font-semibold transition-all duration-300 ${
+              className={`flex-1 py-3 rounded-xl font-semibold transition-all duration-300 cursor-pointer ${
                 selectedProject.price === 0
                   ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:shadow-lg'
                   : 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:shadow-lg'
@@ -307,7 +307,7 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
         <div className="flex flex-col sm:flex-row gap-4">
           <button
             onClick={handlePurchaseClick}
-            className={`flex-1 py-3 rounded-xl font-semibold transition-all duration-300 ${
+            className={`flex-1 py-3 rounded-xl font-semibold transition-all duration-300 cursor-pointer ${
               selectedProject.price === 0
                 ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:shadow-lg'
                 : 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:shadow-lg'
@@ -324,7 +324,7 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
           </button>
           <button
             onClick={onClose}
-            className="flex-1 py-3 rounded-xl font-semibold border-2 border-gray-300 text-gray-700 hover:bg-gray-50 transition-all duration-300"
+            className="flex-1 py-3 rounded-xl font-semibold border-2 border-gray-300 text-gray-700 hover:bg-gray-50 transition-all duration-300 cursor-pointer"
           >
             Close
           </button>

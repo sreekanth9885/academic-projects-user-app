@@ -1,3 +1,4 @@
+// app/components/HomeContent/types.ts
 export interface Project {
   id: number;
   title: string;
@@ -5,50 +6,33 @@ export interface Project {
   price: number;
   category: string;
   created_at: string;
-  documentation: string; // File path
-  code_files: string; // File path
-  // Optional fields we can calculate or add defaults for
-  discounted_price?: number;
-  tags?: string[];
-  technologies?: string[];
-  thumbnail?: string;
-  images?: string[];
-  features?: string[];
-  difficulty?: 'beginner' | 'intermediate' | 'advanced';
-  delivery_time?: number;
-  rating?: number;
-  reviews_count?: number;
-  downloads?: number;
-  includes?: {
-    source_code: boolean;
-    documentation: boolean;
-    video_tutorial: boolean;
-    deployment: boolean;
-  };
-  author?: string;
-  university?: string;
-  year?: number;
+  documentation: string | null;
+  code_files: string | null;
 }
 
-export interface OrderRequest {
-  project_id: number;
-  amount: number;
-  currency: string;
-  customer_name: string;
-  customer_email: string;
-  customer_phone: string;
+export interface HeaderProps {
+  currentView: 'home' | 'projects' | 'categories' | 'freeprojects';
+  setCurrentView: (view: 'home' | 'projects' | 'categories' | 'freeprojects') => void;
 }
 
-export interface RazorpayResponse {
-  id: string;
-  entity: string;
-  amount: number;
-  amount_paid: number;
-  amount_due: number;
-  currency: string;
-  receipt: string;
-  status: string;
-  attempts: number;
-  notes: string[];
-  created_at: number;
+export interface CustomerInfo {
+  name: string;
+  email: string;
+  phone: string;
 }
+
+export interface PaymentState {
+  status: 'pending' | 'success' | 'failed';
+  data: {
+    download_link?: string;
+    payment_id?: string;
+    order_id?: string;
+  } | null;
+}
+
+declare global {
+  interface Window {
+    Razorpay: any;
+  }
+}
+export const API_BASE_URL = 'https://academicprojects.org/api';

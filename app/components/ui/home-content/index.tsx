@@ -1,16 +1,15 @@
-// app/components/HomeContent/index.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
 import { Calendar } from 'lucide-react';
-import { loadRazorpayScript } from '../../../lib/utils';
 import HeroSection from './HeroSection';
 import ProjectCard from './ProjectCard';
 import CategoriesSection from './CategoriesSection';
 import StatsSection from './StatsSection';
 import BenefitsSection from './BenefitsSection';
 import ProjectModal from './ProjectModal';
-import { API_BASE_URL, CustomerInfo, HeaderProps, Project } from '@/app/lib/types';
+import { API_BASE_URL, HeaderProps, Project } from '@/app/lib/types';
+import { useProjectPurchase } from '@/app/hooks/useProjectPurchase';
 
 const HomeContent: React.FC<HeaderProps> = ({ currentView, setCurrentView }) => {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -18,14 +17,30 @@ const HomeContent: React.FC<HeaderProps> = ({ currentView, setCurrentView }) => 
   const [error, setError] = useState<string | null>(null);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
-  const [paymentStatus, setPaymentStatus] = useState<'pending' | 'success' | 'failed'>('pending');
-  const [downloadData, setDownloadData] = useState<{ download_link?: string; payment_id?: string; order_id?: string } | null>(null);
-  const [customerInfo, setCustomerInfo] = useState<CustomerInfo>({ name: '', email: '', phone: '' });
-  const [showCustomerForm, setShowCustomerForm] = useState(false);
-
+  const {
+  paymentStatus,
+  customerInfo,
+  showCustomerForm,
+  setCustomerInfo,
+  setShowCustomerForm,
+  setPaymentStatus,
+  handlePurchase
+} = useProjectPurchase();
   useEffect(() => {
     fetchProjects();
   }, []);
+  useEffect(() => {
+  if (paymentStatus === 'success') {
+    const timer = setTimeout(() => {
+      setIsDetailsModalOpen(false);
+      setPaymentStatus('pending');
+      setCustomerInfo({ name: '', email: '', phone: '' });
+      setShowCustomerForm(false);
+    }, 1500); // allow download to start
+
+    return () => clearTimeout(timer);
+  }
+}, [paymentStatus]);
 
   const fetchProjects = async () => {
     try {
@@ -68,219 +83,9 @@ const HomeContent: React.FC<HeaderProps> = ({ currentView, setCurrentView }) => 
     setCurrentView('categories');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
-
-  const handleDownloadFiles = () => {
-    if (!selectedProject) return;
-    
-    console.log('Downloading files for project:', selectedProject);
-    
-    if (selectedProject.documentation) {
-      const docUrl = `${API_BASE_URL}/uploads/${selectedProject.documentation}`;
-      const docName = `${selectedProject.title.replace(/\s+/g, '_')}_documentation.pdf`;
-      
-      const link1 = document.createElement('a');
-      link1.href = docUrl;
-      link1.download = docName;
-      document.body.appendChild(link1);
-      link1.click();
-      document.body.removeChild(link1);
-      
-      setTimeout(() => {
-        window.open(docUrl, '_blank');
-      }, 100);
-    }
-    
-    if (selectedProject.code_files) {
-      const codeUrl = `${API_BASE_URL}/uploads/${selectedProject.code_files}`;
-      const codeName = `${selectedProject.title.replace(/\s+/g, '_')}_source_code.zip`;
-      
-      setTimeout(() => {
-        const link2 = document.createElement('a');
-        link2.href = codeUrl;
-        link2.download = codeName;
-        document.body.appendChild(link2);
-        link2.click();
-        document.body.removeChild(link2);
-        
-        setTimeout(() => {
-          window.open(codeUrl, '_blank');
-        }, 100);
-      }, 300);
-    }
-    
-    setTimeout(() => {
-      setIsDetailsModalOpen(false);
-      setPaymentStatus('pending');
-      setDownloadData(null);
-      setCustomerInfo({ name: '', email: '', phone: '' });
-      setShowCustomerForm(false);
-    }, 2000);
-  };
-
-  const validateCustomerInfo = (info: CustomerInfo): boolean => {
-    if (!info.name.trim()) {
-      alert('Please enter your name');
-      return false;
-    }
-    if (!info.email.trim()) {
-      alert('Please enter your email');
-      return false;
-    }
-    if (!info.phone.trim()) {
-      alert('Please enter your phone number');
-      return false;
-    }
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(info.email)) {
-      alert('Please enter a valid email address');
-      return false;
-    }
-    return true;
-  };
-
-  const handlePurchase = async (project: Project) => {
-    if (project.price === 0) {
-      if (!validateCustomerInfo(customerInfo)) return;
-      
-      setPaymentStatus('success');
-      setDownloadData({
-        download_link: `${API_BASE_URL}/uploads`,
-        payment_id: `FREE_${Date.now()}`,
-        order_id: `FREE_ORDER_${Date.now()}`
-      });
-      
-      setTimeout(() => {
-        handleDownloadFiles();
-      }, 500);
-      
-      return;
-    }
-
-    if (!showCustomerForm) {
-      setShowCustomerForm(true);
-      return;
-    }
-
-    if (!validateCustomerInfo(customerInfo)) return;
-
-    try {
-      setPaymentStatus('pending');
-      
-      const orderResponse = await fetch(`${API_BASE_URL}/create-order.php`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          project_id: project.id,
-          project_title: project.title,
-          amount: project.price,
-          name: customerInfo.name,
-          email: customerInfo.email,
-          phone: customerInfo.phone
-        })
-      });
-
-      const orderData = await orderResponse.json();
-
-      if (!orderData.success) {
-        throw new Error(orderData.error || 'Failed to create order');
-      }
-
-      if (!window.Razorpay) {
-        const scriptLoaded = await loadRazorpayScript();
-        if (!scriptLoaded) {
-          throw new Error('Failed to load Razorpay SDK');
-        }
-        await new Promise(resolve => setTimeout(resolve, 500));
-      }
-
-      const options = {
-        key: orderData.key_id,
-        amount: orderData.amount,
-        currency: orderData.currency,
-        name: 'Academic Projects',
-        description: `Purchase: ${project.title}`,
-        image: '/logo.png',
-        order_id: orderData.order_id,
-        handler: async function (response: any) {
-          try {
-            const verifyResponse = await fetch(`${API_BASE_URL}/verify-payment.php`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                razorpay_order_id: response.razorpay_order_id,
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_signature: response.razorpay_signature,
-                customer_name: customerInfo.name,
-                customer_email: customerInfo.email,
-                customer_phone: customerInfo.phone
-              })
-            });
-
-            const verifyData = await verifyResponse.json();
-
-            if (verifyData.success) {
-              setPaymentStatus('success');
-              setDownloadData({
-                download_link: verifyData.download_link,
-                payment_id: response.razorpay_payment_id,
-                order_id: response.razorpay_order_id
-              });
-              
-              setTimeout(() => {
-                handleDownloadFiles();
-              }, 1000);
-              
-            } else {
-              setPaymentStatus('failed');
-              alert('Payment verification failed: ' + verifyData.error);
-            }
-          } catch (error) {
-            setPaymentStatus('failed');
-            console.error('Verification error:', error);
-            alert('Error verifying payment. Please contact support.');
-          }
-        },
-        prefill: {
-          name: customerInfo.name,
-          email: customerInfo.email,
-          contact: customerInfo.phone
-        },
-        notes: {
-          project_id: project.id,
-          project_title: project.title,
-          customer_name: customerInfo.name,
-          customer_email: customerInfo.email,
-          customer_phone: customerInfo.phone
-        },
-        theme: {
-          color: '#667eea'
-        },
-        modal: {
-          ondismiss: function() {
-            console.log('Payment modal closed');
-            setPaymentStatus('pending');
-          }
-        }
-      };
-
-      if (typeof window.Razorpay === 'function') {
-        const rzp = new window.Razorpay(options);
-        rzp.open();
-      } else {
-        throw new Error('Razorpay SDK not loaded properly');
-      }
-
-    } catch (error) {
-      setPaymentStatus('failed');
-      console.error('Payment error:', error);
-      alert('Payment failed. Please try again.');
-    }
-  };
-
   const handleCloseModal = () => {
     setIsDetailsModalOpen(false);
     setPaymentStatus('pending');
-    setDownloadData(null);
     setCustomerInfo({ name: '', email: '', phone: '' });
     setShowCustomerForm(false);
   };

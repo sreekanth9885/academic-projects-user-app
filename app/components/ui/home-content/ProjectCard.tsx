@@ -64,7 +64,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, onViewDetails }) => 
       <div className="px-6 py-4 bg-gray-50 border-t border-gray-100">
         <button 
           onClick={() => onViewDetails(project)}
-          className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 rounded-xl font-semibold hover:shadow-lg transition-all duration-300"
+          className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 rounded-xl font-semibold hover:shadow-lg transition-all duration-300 cursor-pointer"
         >
           View Details
         </button>

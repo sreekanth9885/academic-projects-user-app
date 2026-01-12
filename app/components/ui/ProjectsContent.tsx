@@ -2,17 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { Download, Eye, Calendar, Tag, DollarSign } from 'lucide-react';
-
-interface Project {
-  id: number;
-  title: string;
-  description: string;
-  price: string;
-  category: string;
-  created_at: string;
-  documentation: string | null;
-  code_files: string | null;
-}
+import { API_BASE_URL, Project } from '@/app/lib/types';
+import { getPriceDisplay } from '@/app/lib/utils';
 
 export default function ProjectsContent() {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -26,7 +17,7 @@ export default function ProjectsContent() {
   const fetchProjects = async () => {
     try {
       setLoading(true);
-      const response = await fetch('https://academicprojects.org/api/projects.php');
+      const response = await fetch(`${API_BASE_URL}/projects.php`);
       const data = await response.json();
       
       if (data.status === 'success') {
@@ -51,14 +42,10 @@ export default function ProjectsContent() {
     });
   };
 
-  const getPriceDisplay = (price: string) => {
-    const priceNum = parseFloat(price);
-    if (priceNum === 0) return 'FREE';
-    return `$${priceNum.toFixed(2)}`;
-  };
+  
 
   const handleDownload = (project: Project) => {
-    if (parseFloat(project.price) === 0) {
+    if (project.price === 0) {
       alert(`Downloading free project: ${project.title}`);
       // Here you would implement the actual download logic
     } else {
@@ -136,7 +123,7 @@ export default function ProjectsContent() {
                       )}
                     </div>
                     <div className={`text-lg font-bold px-3 py-1 rounded-lg ${
-                      parseFloat(project.price) === 0 
+                      project.price === 0 
                         ? 'bg-green-100 text-green-700' 
                         : 'bg-blue-100 text-blue-700'
                     }`}>
@@ -172,12 +159,12 @@ export default function ProjectsContent() {
                   <button
                     onClick={() => handleDownload(project)}
                     className={`w-full py-3 rounded-xl font-semibold hover:shadow-lg transition-all duration-300 ${
-                      parseFloat(project.price) === 0
+                      project.price === 0
                         ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white'
                         : 'bg-gradient-to-r from-blue-600 to-purple-600 text-white'
                     }`}
                   >
-                    {parseFloat(project.price) === 0 ? 'Download Free' : 'Purchase Now'}
+                    {project.price === 0 ? 'Download Free' : 'Purchase Now'}
                   </button>
                 </div>
               </div>
@@ -198,13 +185,13 @@ export default function ProjectsContent() {
               </div>
               <div className="bg-white p-6 rounded-xl text-center shadow-lg">
                 <div className="text-3xl font-bold text-green-600 mb-2">
-                  {projects.filter(p => parseFloat(p.price) === 0).length}
+                  {projects.filter(p => p.price === 0).length}
                 </div>
                 <div className="text-gray-700 font-semibold">Free Projects</div>
               </div>
               <div className="bg-white p-6 rounded-xl text-center shadow-lg">
                 <div className="text-3xl font-bold text-purple-600 mb-2">
-                  ${projects.reduce((sum, p) => sum + parseFloat(p.price), 0).toFixed(2)}
+                  ${projects.reduce((sum, p) => sum + p.price, 0)}
                 </div>
                 <div className="text-gray-700 font-semibold">Total Value</div>
               </div>

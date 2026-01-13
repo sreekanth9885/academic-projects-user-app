@@ -12,7 +12,7 @@ const CategoriesSection: React.FC<CategoriesSectionProps> = ({ onCategoryClick }
     <div className="bg-gray-50 py-16">
       <div className="container mx-auto px-4">
         <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold text-gray-900 mb-3">Browse by Category</h2>
+          <h2 className="text-3xl font-bold text-gray-900 mb-3 ">Browse by Category</h2>
           <p className="text-gray-600 max-w-2xl mx-auto">
             Explore projects in your area of interest. From Python to React, we have it all.
           </p>

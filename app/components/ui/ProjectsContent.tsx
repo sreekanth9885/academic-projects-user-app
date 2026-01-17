@@ -186,7 +186,7 @@ export default function ProjectsContent() {
 
                   <button
                     onClick={() => handleViewDetails(project)}
-                    className={`w-full py-3 rounded-xl font-semibold hover:shadow-lg transition-all duration-300 ${project.price === 0
+                    className={`w-full py-3 rounded-xl font-semibold hover:shadow-lg transition-all duration-300 cursor-pointer ${project.price === 0
                         ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white'
                         : 'bg-gradient-to-r from-blue-600 to-purple-600 text-white'
                       }`}

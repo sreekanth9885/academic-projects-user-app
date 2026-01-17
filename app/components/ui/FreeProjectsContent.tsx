@@ -126,7 +126,7 @@ export default function FreeProjectsContent() {
           <div className="flex flex-wrap gap-3 mb-8">
             <button
               onClick={() => setFilter('all')}
-              className={`px-4 py-2 rounded-full font-medium transition-all duration-300 ${
+              className={`px-4 py-2 rounded-full font-medium transition-all duration-300 cursor-pointer ${
                 filter === 'all' 
                   ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg' 
                   : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-200'

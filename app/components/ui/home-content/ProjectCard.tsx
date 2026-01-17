@@ -44,7 +44,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, onViewDetails }) => 
             </div>
           </div>
           
-          <div className="flex items-center space-x-4 text-sm text-gray-500">
+          <div className="flex items-center space-x-4 text-sm text-blue-600">
             {project.documentation && (
               <div className="flex items-center">
                 <Eye className="w-4 h-4 mr-1" />
@@ -52,7 +52,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, onViewDetails }) => 
               </div>
             )}
             {project.code_files && (
-              <div className="flex items-center">
+              <div className="flex items-center text-green-600">
                 <Download className="w-4 h-4 mr-1" />
                 <span>Source Code</span>
               </div>

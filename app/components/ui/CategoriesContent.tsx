@@ -150,7 +150,7 @@ export default function CategoriesContent() {
                   <button
                     key={category.name}
                     onClick={() => setSelectedCategory(category.name)}
-                    className={`bg-white rounded-xl p-6 shadow-lg hover:shadow-2xl transition-all duration-300 border-2 ${
+                    className={`bg-white rounded-xl p-6 shadow-lg hover:shadow-2xl transition-all duration-300 border-2 cursor-pointer ${
                       selectedCategory === category.name 
                         ? 'border-blue-500 ring-2 ring-blue-100' 
                         : 'border-gray-100 hover:border-blue-200'
@@ -236,10 +236,10 @@ export default function CategoriesContent() {
                 )}
                 
                 <div className="flex space-x-4">
-                  <button className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-lg font-semibold hover:shadow-lg transition-all duration-300">
+                  <button className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-lg font-semibold hover:shadow-lg transition-all duration-300 cursor-pointer">
                     View All {selectedCategory} Projects
                   </button>
-                  <button className="bg-white text-blue-600 px-6 py-3 rounded-lg font-semibold border border-blue-200 hover:bg-blue-50 transition-all duration-300">
+                  <button className="bg-white text-blue-600 px-6 py-3 rounded-lg font-semibold border border-blue-200 hover:bg-blue-50 transition-all duration-300 cursor-pointer">
                     Download Sample
                   </button>
                 </div>

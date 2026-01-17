@@ -4,6 +4,7 @@ export interface Project {
   title: string;
   description: string;
   price: number;
+  actual_price: number;
   category: string;
   created_at: string;
   documentation: string | null;

@@ -151,12 +151,20 @@ export default function ProjectsContent() {
                         </span>
                       )}
                     </div>
-                    <div className={`text-lg font-bold px-3 py-1 rounded-lg ${project.price === 0
-                        ? 'bg-green-100 text-green-700'
-                        : 'bg-blue-100 text-blue-700'
-                      }`}>
-                      {getPriceDisplay(project.price)}
-                    </div>
+                    <div className="text-right">
+                                {project.actual_price > project.price && project.price > 0 && (
+                                  <div className="text-sm text-red-800 line-through">
+                                    ₹{project.actual_price}
+                                  </div>
+                                )}
+                    
+                                <div
+                                  className={`text-lg font-bold ${project.price === 0 ? 'text-green-600' : 'text-gray-900'
+                                    }`}
+                                >
+                                  {getPriceDisplay(project.price)}
+                                </div>
+                              </div>
                   </div>
 
                   <h3 className="text-xl font-bold text-gray-900 mb-3 line-clamp-1">{project.title}</h3>

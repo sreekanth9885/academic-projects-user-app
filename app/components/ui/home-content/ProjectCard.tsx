@@ -26,16 +26,25 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, onViewDetails }) => 
               </span>
             )}
           </div>
-          <span className={`text-lg font-bold ${
-            project.price === 0 ? 'text-green-600' : 'text-gray-900'
-          }`}>
-            {getPriceDisplay(project.price)}
-          </span>
+          <div className="text-right">
+            {project.actual_price > project.price && project.price > 0 && (
+              <div className="text-sm text-red-800 line-through">
+                ₹{project.actual_price}
+              </div>
+            )}
+
+            <div
+              className={`text-lg font-bold ${project.price === 0 ? 'text-green-600' : 'text-gray-900'
+                }`}
+            >
+              {getPriceDisplay(project.price)}
+            </div>
+          </div>
         </div>
-        
+
         <h3 className="text-xl font-bold text-gray-900 mb-2 line-clamp-1">{project.title}</h3>
         <p className="text-gray-600 mb-4 line-clamp-2 h-12">{project.description}</p>
-        
+
         <div className="space-y-3 mb-4">
           <div className="flex items-center justify-between text-sm text-gray-500">
             <div className="flex items-center">
@@ -43,7 +52,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, onViewDetails }) => 
               Added: {formatDate(project.created_at)}
             </div>
           </div>
-          
+
           <div className="flex items-center space-x-4 text-sm text-blue-600">
             {project.documentation && (
               <div className="flex items-center">
@@ -60,9 +69,9 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, onViewDetails }) => 
           </div>
         </div>
       </div>
-      
+
       <div className="px-6 py-4 bg-gray-50 border-t border-gray-100">
-        <button 
+        <button
           onClick={() => onViewDetails(project)}
           className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 rounded-xl font-semibold hover:shadow-lg transition-all duration-300 cursor-pointer"
         >

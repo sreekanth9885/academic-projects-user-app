@@ -319,7 +319,7 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
                 Download Now (Free)
               </div>
             ) : (
-              `Purchase Now - ${getPriceDisplay(selectedProject.price)}`
+              `Purchase Now ${getPriceDisplay(selectedProject.price)}`
             )}
           </button>
           <button

@@ -15,7 +15,7 @@ export const getPriceDisplay = (price: number): string => {
   console.log('getPriceDisplay called with price:', price);
   const priceNum = price;
   if (priceNum === 0) return 'FREE';
-  return `₹${priceNum.toFixed(0)}`;
+  return ` ₹${priceNum.toFixed(0)}`;
 };
 
 export const validateCustomerInfo = (customerInfo: { name: string; email: string; phone: string }): boolean => {

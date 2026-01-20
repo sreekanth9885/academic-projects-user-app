@@ -2,9 +2,9 @@
 import React, { useState } from 'react';
 import { 
   FileText, Tag, Calendar, Clock, Download, Code, Database, Award, 
-  X, User, Mail, Phone 
+  X, User, Mail, Phone, CheckCircle, XCircle, AlertCircle, Mail as MailIcon
 } from 'lucide-react';
-import { formatDate, getPriceDisplay, validateCustomerInfo, handleDownloadFiles } from '../../../lib/utils';
+import { formatDate, getPriceDisplay, validateCustomerInfo } from '../../../lib/utils';
 import { CustomerInfo, Project } from '@/app/lib/types';
 
 interface ProjectModalProps {
@@ -18,6 +18,7 @@ interface ProjectModalProps {
   onBackToProject: () => void;
   onCustomerInfoChange: (info: CustomerInfo) => void;
   onShowCustomerForm: (show: boolean) => void;
+  paymentMessage?: string; // Add this prop
 }
 
 const ProjectModal: React.FC<ProjectModalProps> = ({
@@ -31,6 +32,7 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
   onBackToProject,
   onCustomerInfoChange,
   onShowCustomerForm,
+  paymentMessage, // Add this prop
 }) => {
   const [localCustomerInfo, setLocalCustomerInfo] = useState<CustomerInfo>(customerInfo);
 
@@ -61,19 +63,69 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
       return (
         <div className="text-center py-8">
           <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <svg className="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
-            </svg>
+            <CheckCircle className="w-10 h-10 text-green-600" />
           </div>
-          <h3 className="text-2xl font-bold text-gray-900 mb-2">Download Started!</h3>
-          <p className="text-gray-600 mb-6">
-            Your files are being downloaded. The modal will close automatically.
-          </p>
+          <h3 className="text-2xl font-bold text-gray-900 mb-2">Success!</h3>
+          
+          {/* Payment/Email Status Messages */}
+          {paymentMessage ? (
+            <div className="mb-6">
+              <p className="text-gray-600">{paymentMessage}</p>
+              {paymentMessage.includes('email') && (
+                <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex items-center justify-center text-blue-700">
+                    <MailIcon className="w-5 h-5 mr-2" />
+                    <span className="font-medium">Check your inbox and spam folder</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <p className="text-gray-600 mb-6">
+              Your files are being processed. You will receive an email with download instructions shortly.
+            </p>
+          )}
+          
           <div className="animate-pulse">
             <div className="flex items-center justify-center space-x-2">
               <Download className="w-5 h-5 text-blue-600" />
-              <span className="text-blue-600 font-medium">Downloading files...</span>
+              <span className="text-blue-600 font-medium">Processing your request...</span>
             </div>
+          </div>
+        </div>
+      );
+    }
+
+    if (paymentStatus === 'failed') {
+      return (
+        <div className="text-center py-8">
+          <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <XCircle className="w-10 h-10 text-red-600" />
+          </div>
+          <h3 className="text-2xl font-bold text-gray-900 mb-2">Payment Failed</h3>
+          
+          {/* Payment Error Message */}
+          {paymentMessage ? (
+            <p className="text-gray-600 mb-6">{paymentMessage}</p>
+          ) : (
+            <p className="text-gray-600 mb-6">
+              There was an issue processing your payment. Please try again or contact support.
+            </p>
+          )}
+          
+          <div className="flex justify-center space-x-4">
+            <button
+              onClick={() => onPurchase(selectedProject)}
+              className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-semibold hover:shadow-lg transition-all duration-300"
+            >
+              Try Again
+            </button>
+            <button
+              onClick={onClose}
+              className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition-all duration-300"
+            >
+              Close
+            </button>
           </div>
         </div>
       );
@@ -86,6 +138,16 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
             <h4 className="text-lg font-bold text-gray-900 mb-4">Enter Your Contact Details</h4>
             <p className="text-gray-600 mb-6">We need your information to process the order and send download links.</p>
           </div>
+
+          {/* Show any pending messages during payment */}
+          {paymentStatus === 'pending' && paymentMessage && (
+            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="flex items-center text-blue-700">
+                <AlertCircle className="w-5 h-5 mr-2" />
+                <span className="font-medium">{paymentMessage}</span>
+              </div>
+            </div>
+          )}
 
           <div className="space-y-4">
             <div>
@@ -145,6 +207,16 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
 
     return (
       <div className="space-y-6">
+        {/* Show payment pending message if any */}
+        {paymentStatus === 'pending' && paymentMessage && (
+          <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-center text-blue-700">
+              <AlertCircle className="w-5 h-5 mr-2" />
+              <span className="font-medium">{paymentMessage}</span>
+            </div>
+          </div>
+        )}
+
         <div>
           <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
             <h2 className="text-2xl font-bold text-gray-900">{selectedProject.title}</h2>
@@ -335,27 +407,36 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
     if (paymentStatus === 'success') {
       return (
         <div className="text-center">
-          <p className="text-green-600 font-medium">Download complete! Modal will close shortly...</p>
+          <button
+            onClick={onClose}
+            className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-semibold hover:shadow-lg transition-all duration-300"
+          >
+            Close
+          </button>
         </div>
       );
     }
 
-    return (
-      <div className="flex flex-col sm:flex-row gap-4">
-        <button
-          onClick={() => onPurchase(selectedProject)}
-          className="flex-1 py-3 rounded-xl font-semibold bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:shadow-lg transition-all duration-300"
-        >
-          Try Again
-        </button>
-        <button
-          onClick={onClose}
-          className="flex-1 py-3 rounded-xl font-semibold border-2 border-gray-300 text-gray-700 hover:bg-gray-50 transition-all duration-300"
-        >
-          Close
-        </button>
-      </div>
-    );
+    if (paymentStatus === 'failed') {
+      return (
+        <div className="flex flex-col sm:flex-row gap-4">
+          <button
+            onClick={() => onPurchase(selectedProject)}
+            className="flex-1 py-3 rounded-xl font-semibold bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:shadow-lg transition-all duration-300"
+          >
+            Try Again
+          </button>
+          <button
+            onClick={onClose}
+            className="flex-1 py-3 rounded-xl font-semibold border-2 border-gray-300 text-gray-700 hover:bg-gray-50 transition-all duration-300"
+          >
+            Close
+          </button>
+        </div>
+      );
+    }
+
+    return null;
   };
 
   return (

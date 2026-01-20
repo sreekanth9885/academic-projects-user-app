@@ -21,6 +21,7 @@ const HomeContent: React.FC<HeaderProps> = ({ currentView, setCurrentView }) => 
   paymentStatus,
   customerInfo,
   showCustomerForm,
+  paymentMessage,
   setCustomerInfo,
   setShowCustomerForm,
   setPaymentStatus,
@@ -36,7 +37,7 @@ const HomeContent: React.FC<HeaderProps> = ({ currentView, setCurrentView }) => 
       setPaymentStatus('pending');
       setCustomerInfo({ name: '', email: '', phone: '' });
       setShowCustomerForm(false);
-    }, 1500); // allow download to start
+    }, 3000); // allow download to start
 
     return () => clearTimeout(timer);
   }
@@ -176,6 +177,7 @@ const HomeContent: React.FC<HeaderProps> = ({ currentView, setCurrentView }) => 
         onBackToProject={handleBackToProject}
         onCustomerInfoChange={setCustomerInfo}
         onShowCustomerForm={setShowCustomerForm}
+        paymentMessage={paymentMessage}
       />
     </div>
   );

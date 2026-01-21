@@ -7,6 +7,12 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "ProjectHub - Academic Marketplace",
   description: "Complete academic projects for students",
+  icons: {
+    icon: [
+      {url:"/icon.png",type:"image/png"},
+    ],
+    apple: "/icon.png",
+  },
 };
 
 export default function RootLayout({

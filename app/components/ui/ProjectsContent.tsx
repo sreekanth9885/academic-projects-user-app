@@ -26,18 +26,18 @@ export default function ProjectsContent() {
   useEffect(() => {
     fetchProjects();
   }, []);
-  useEffect(() => {
-  if (paymentStatus === 'success') {
-    const timer = setTimeout(() => {
-      setIsDetailsModalOpen(false);
-      setPaymentStatus('pending');
-      setCustomerInfo({ name: '', email: '', phone: '' });
-      setShowCustomerForm(false);
-    }, 1500); // allow download to start
+//   useEffect(() => {
+//   if (paymentStatus === 'success') {
+//     const timer = setTimeout(() => {
+//       setIsDetailsModalOpen(false);
+//       setPaymentStatus('pending');
+//       setCustomerInfo({ name: '', email: '', phone: '' });
+//       setShowCustomerForm(false);
+//     }, 1500); // allow download to start
 
-    return () => clearTimeout(timer);
-  }
-}, [paymentStatus]);
+//     return () => clearTimeout(timer);
+//   }
+// }, [paymentStatus]);
   const fetchProjects = async () => {
     try {
       setLoading(true);

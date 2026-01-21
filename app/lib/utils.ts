@@ -12,7 +12,7 @@ export const formatDate = (dateString: string): string => {
 };
 
 export const getPriceDisplay = (price: number): string => {
-  console.log('getPriceDisplay called with price:', price);
+  // console.log('getPriceDisplay called with price:', price);
   const priceNum = price;
   if (priceNum === 0) return 'FREE';
   return ` ₹${priceNum.toFixed(0)}`;

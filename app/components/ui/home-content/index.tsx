@@ -30,18 +30,18 @@ const HomeContent: React.FC<HeaderProps> = ({ currentView, setCurrentView }) => 
   useEffect(() => {
     fetchProjects();
   }, []);
-  useEffect(() => {
-  if (paymentStatus === 'success') {
-    const timer = setTimeout(() => {
-      setIsDetailsModalOpen(false);
-      setPaymentStatus('pending');
-      setCustomerInfo({ name: '', email: '', phone: '' });
-      setShowCustomerForm(false);
-    }, 3000); // allow download to start
+//   useEffect(() => {
+//   if (paymentStatus === 'success') {
+//     const timer = setTimeout(() => {
+//       setIsDetailsModalOpen(false);
+//       setPaymentStatus('pending');
+//       setCustomerInfo({ name: '', email: '', phone: '' });
+//       setShowCustomerForm(false);
+//     }, 3000); // allow download to start
 
-    return () => clearTimeout(timer);
-  }
-}, [paymentStatus]);
+//     return () => clearTimeout(timer);
+//   }
+// }, [paymentStatus]);
 
   const fetchProjects = async () => {
     try {
@@ -93,6 +93,8 @@ const HomeContent: React.FC<HeaderProps> = ({ currentView, setCurrentView }) => 
 
   const handleBackToProject = () => {
     setShowCustomerForm(false);
+    setCustomerInfo({ name: '', email: '', phone: '' });
+    console.log('Customer Info', customerInfo);
   };
 
   if (loading) {

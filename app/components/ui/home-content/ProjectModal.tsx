@@ -1,5 +1,5 @@
 // app/components/HomeContent/ProjectModal.tsx
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   FileText, Tag, Calendar, Clock, Download, Code, Database, Award, 
   X, User, Mail, Phone, CheckCircle, XCircle, AlertCircle, Mail as MailIcon
@@ -35,7 +35,10 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
   paymentMessage, // Add this prop
 }) => {
   const [localCustomerInfo, setLocalCustomerInfo] = useState<CustomerInfo>(customerInfo);
-
+  // console.log("On Close - ProjectModal called",onClose);
+  useEffect(() => {
+  setLocalCustomerInfo(customerInfo);
+}, [customerInfo]);
   if (!isOpen || !selectedProject) return null;
 
   const handleCustomerInfoChange = (field: keyof CustomerInfo, value: string) => {
@@ -57,7 +60,11 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
       }
     }
   };
-
+  const getModalTitle = () => {
+    if (paymentStatus === 'success') return 'Order Success!';
+    if (paymentStatus === 'failed') return 'Payment Failed';
+    return showCustomerForm ? 'Enter Your Details' : 'Project Details';
+  }
   const renderContent = () => {
     if (paymentStatus === 'success') {
       return (
@@ -83,15 +90,16 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
           ) : (
             <p className="text-gray-600 mb-6">
               Your files are being processed. You will receive an email with download instructions shortly.
+              If you do not see it, please check your spam folder in your mail.
             </p>
           )}
           
-          <div className="animate-pulse">
+          {/* <div className="animate-pulse">
             <div className="flex items-center justify-center space-x-2">
               <Download className="w-5 h-5 text-blue-600" />
               <span className="text-blue-600 font-medium">Processing your request...</span>
             </div>
-          </div>
+          </div> */}
         </div>
       );
     }
@@ -454,7 +462,7 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
                 <FileText className="w-6 h-6 text-blue-600" />
               </div>
               <h3 className="text-2xl font-bold text-gray-900">
-                {showCustomerForm ? 'Enter Your Details' : 'Project Details'}
+                {getModalTitle()}
               </h3>
             </div>
             <button

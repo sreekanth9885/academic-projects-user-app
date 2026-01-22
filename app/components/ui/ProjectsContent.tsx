@@ -13,15 +13,7 @@ export default function ProjectsContent() {
   const [error, setError] = useState<string | null>(null);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
-  const {
-    paymentStatus,
-    customerInfo,
-    showCustomerForm,
-    setCustomerInfo,
-    setShowCustomerForm,
-    setPaymentStatus,
-    handlePurchase
-  } = useProjectPurchase();
+  const purchase = useProjectPurchase();
 
   useEffect(() => {
     fetchProjects();
@@ -68,8 +60,8 @@ export default function ProjectsContent() {
   const handleViewDetails = (project: Project) => {
     setSelectedProject(project);
     setIsDetailsModalOpen(true);
-    setPaymentStatus('pending');
-    setShowCustomerForm(false);
+    purchase.setPaymentStatus('pending');
+    purchase.setShowCustomerForm(false);
   };
 
 
@@ -82,7 +74,11 @@ export default function ProjectsContent() {
       // Here you would implement the purchase logic
     }
   };
-
+  const handleBackToProject = () => {
+    purchase.setShowCustomerForm(false);
+    purchase.setCustomerInfo({ name: '', email: '', phone: '' });
+    console.log('Customer Info', purchase.customerInfo);
+  };
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white flex items-center justify-center">
@@ -206,18 +202,43 @@ export default function ProjectsContent() {
             ))}
           </div>
         )}
-        <ProjectModal
+        {/* <ProjectModal
           selectedProject={selectedProject}
           isOpen={isDetailsModalOpen}
-          paymentStatus={paymentStatus}
-          customerInfo={customerInfo}
-          showCustomerForm={showCustomerForm}
+          paymentStatus={purchase.paymentStatus}
+          customerInfo={purchase.customerInfo}
+          showCustomerForm={purchase.showCustomerForm}
           onClose={() => setIsDetailsModalOpen(false)}
           onPurchase={handlePurchase}
           onBackToProject={() => setShowCustomerForm(false)}
           onCustomerInfoChange={setCustomerInfo}
           onShowCustomerForm={setShowCustomerForm}
-        />
+        /> */}
+        <ProjectModal
+        selectedProject={selectedProject}
+        isOpen={isDetailsModalOpen}
+        paymentStatus={purchase.paymentStatus}
+        customerInfo={purchase.customerInfo}
+        showCustomerForm={purchase.showCustomerForm}
+        onClose={() => setIsDetailsModalOpen(false)}
+        onPurchase={purchase.handlePurchase}
+        onBackToProject={handleBackToProject}
+        onCustomerInfoChange={purchase.setCustomerInfo}
+        onShowCustomerForm={purchase.setShowCustomerForm}
+        paymentMessage={purchase.paymentMessage}
+        sendOtp={purchase.sendOtp}
+        verifyOtp={purchase.verifyOtp}
+        resetOtp={purchase.resetOtp}
+        otp={purchase.otp}
+        otpSent={purchase.otpSent}
+        otpVerified={purchase.otpVerified}
+        sendingOtp={purchase.sendingOtp}
+        verifyingOtp={purchase.verifyingOtp}
+        canProceedtoPurchase={purchase.canProceedtoPurchase}
+        setOtp={purchase.setOtp}
+        otpRemainingSeconds={purchase.otpRemainingSeconds}
+        otpExpired={purchase.otpExpired}
+      />
 
         {/* Stats Section */}
         {projects.length > 0 && (

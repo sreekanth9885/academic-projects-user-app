@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { loadRazorpayScript } from '@/app/lib/utils';
 import { API_BASE_URL, CustomerInfo, Project } from '@/app/lib/types';
 
@@ -16,6 +16,14 @@ export function useProjectPurchase() {
 
   const [showCustomerForm, setShowCustomerForm] = useState(false);
   const [paymentMessage, setPaymentMessage] = useState<string>('');
+  const [otpSent, setOtpSent] = useState(false);
+  const [otp, setOtp] = useState('');
+  const [verifyingOtp, setVerifyingOtp] = useState(false);
+  const [sendingOtp, setSendingOtp] = useState(false);
+  const [otpVerified, setOtpVerified] = useState(false);
+  const [otpExpiresAt, setOtpExpiresAt] = useState<string | null>(null);
+  const [otpRemainingSeconds, setOtpRemainingSeconds] = useState<number>(0);
+  const [otpExpired, setOtpExpired] = useState(false);
 
   const validateCustomerInfo = (info: CustomerInfo): boolean => {
     if (!info.name.trim()) {
@@ -199,6 +207,22 @@ export function useProjectPurchase() {
       setPaymentMessage(`Payment failed: ${err.message || 'Please try again'}`);
     }
   };
+  useEffect(() => {
+  if (!otpSent || otpVerified || otpRemainingSeconds <= 0) return;
+
+  const timer = setInterval(() => {
+    setOtpRemainingSeconds((prev) => {
+      if (prev <= 1) {
+        clearInterval(timer);
+        setOtpExpired(true);
+        return 0;
+      }
+      return prev - 1;
+    });
+  }, 1000);
+
+  return () => clearInterval(timer);
+}, [otpSent, otpRemainingSeconds]);
 
   // Clear payment message after 5 seconds on success/failure
   useState(() => {
@@ -209,16 +233,125 @@ export function useProjectPurchase() {
       return () => clearTimeout(timer);
     }
   });
+  const sendOtp = async (email: string) => {
+    console.log('Sending OTP to:', email);
 
+    if (!email || !email.includes('@')) {
+      setPaymentMessage('Please enter a valid email address');
+      return;
+    }
+
+    try {
+      setSendingOtp(true);
+      setOtpSent(false);
+      setOtpVerified(false);
+      setOtp(''); // ✅ clear OTP input
+      setOtpExpired(false);
+      setOtpRemainingSeconds(0);
+      const res = await fetch(`${API_BASE_URL}/send-otp.php`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+
+      let data: any = null;
+      try {
+        data = await res.json();
+        const expires = new Date(data.expires_at).getTime();
+        const serverNow = new Date(data.server_time).getTime();
+        const remaining = Math.max(
+      0,
+      Math.floor((expires - serverNow) / 1000)
+    );
+    setOtpExpiresAt(data.expires_at);
+    setOtpRemainingSeconds(remaining);
+    setOtpSent(true);
+        console.log('Send OTP response data:', data);
+      } catch {
+        throw new Error('Server error while sending OTP');
+      }
+
+      if (!res.ok || data.status !== 'success') {
+        throw new Error(data.message || 'Failed to send OTP');
+      }
+
+      setOtpSent(true);
+      setOtpVerified(false);
+      setOtpExpired(false);
+      setPaymentMessage('OTP sent to your email');
+    } catch (err) {
+      console.error('Send OTP error:', err);
+      setPaymentMessage(
+        err instanceof Error ? err.message : 'Failed to send OTP'
+      );
+    } finally {
+      setSendingOtp(false);
+    }
+  };
+
+
+  const verifyOtp=async(email:string)=>{
+    if(!otp) throw new Error('OTP is required for verification');
+    try{
+      setVerifyingOtp(true);
+      const res=await fetch(`${API_BASE_URL}/verify-otp.php`,{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({email,otp})
+      });
+      const data=await res.json();
+      if (data.status !== 'success') {
+  throw new Error(data.message || 'OTP verification failed');
+}
+
+      setOtpVerified(true);
+      setPaymentMessage('OTP verified successfully');
+    }catch(err){
+      console.error('Verify OTP error:',err);
+      setPaymentMessage('Failed to verify OTP. Please try again.');
+    }finally{
+      setVerifyingOtp(false);
+    }
+  }
+  const canProceedtoPurchase = useMemo(() => {
+  return (
+    customerInfo.name.trim() !== '' &&
+    customerInfo.email.trim() !== '' &&
+    customerInfo.phone.trim() !== '' &&
+    otpVerified
+  );
+}, [customerInfo, otpVerified]);
+
+  const resetOtp=()=>{
+    setOtp('');
+    setOtpSent(false);
+    setOtpVerified(false);
+    setOtpExpired(false);
+    setOtpExpiresAt(null);
+    setOtpRemainingSeconds(0);
+  }
   return {
     paymentStatus,
     customerInfo,
     showCustomerForm,
     paymentMessage,
+    otp,
+    otpSent,
+    sendingOtp,
+    verifyingOtp,
+    otpVerified,
+    otpExpiresAt,
+    otpRemainingSeconds,
+    otpExpired,
     setCustomerInfo,
     setShowCustomerForm,
     setPaymentStatus,
     setPaymentMessage,
-    handlePurchase
+    handlePurchase,
+    setOtp,
+    sendOtp,
+    verifyOtp,
+    resetOtp,
+    canProceedtoPurchase
   };
 }

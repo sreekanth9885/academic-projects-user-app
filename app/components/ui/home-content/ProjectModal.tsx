@@ -1,7 +1,7 @@
 // app/components/HomeContent/ProjectModal.tsx
 import React, { useEffect, useState } from 'react';
-import { 
-  FileText, Tag, Calendar, Clock, Download, Code, Database, Award, 
+import {
+  FileText, Tag, Calendar, Clock, Download, Code, Database, Award,
   X, User, Mail, Phone, CheckCircle, XCircle, AlertCircle, Mail as MailIcon
 } from 'lucide-react';
 import { formatDate, getPriceDisplay, validateCustomerInfo } from '../../../lib/utils';
@@ -18,8 +18,25 @@ interface ProjectModalProps {
   onBackToProject: () => void;
   onCustomerInfoChange: (info: CustomerInfo) => void;
   onShowCustomerForm: (show: boolean) => void;
-  paymentMessage?: string; // Add this prop
+  paymentMessage?: string;
+
+  // OTP actions
+  sendOtp: (email: string) => Promise<void>;
+  verifyOtp: (email: string) => Promise<void>;
+  resetOtp: () => void;
+  setOtp: (otp: string) => void;
+
+  // OTP state
+  otp: string;
+  otpSent: boolean;
+  otpVerified: boolean;
+  sendingOtp: boolean;
+  verifyingOtp: boolean;
+  otpRemainingSeconds: number;
+  otpExpired: boolean;
+  canProceedtoPurchase: boolean;
 }
+
 
 const ProjectModal: React.FC<ProjectModalProps> = ({
   selectedProject,
@@ -32,13 +49,27 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
   onBackToProject,
   onCustomerInfoChange,
   onShowCustomerForm,
-  paymentMessage, // Add this prop
+  paymentMessage,
+
+  // OTP
+  sendOtp,
+  verifyOtp,
+  resetOtp,
+  setOtp,
+  otp,
+  otpSent,
+  otpVerified,
+  sendingOtp,
+  verifyingOtp,
+  otpRemainingSeconds,
+  otpExpired,
+  canProceedtoPurchase,
 }) => {
   const [localCustomerInfo, setLocalCustomerInfo] = useState<CustomerInfo>(customerInfo);
   // console.log("On Close - ProjectModal called",onClose);
   useEffect(() => {
-  setLocalCustomerInfo(customerInfo);
-}, [customerInfo]);
+    setLocalCustomerInfo(customerInfo);
+  }, [customerInfo]);
   if (!isOpen || !selectedProject) return null;
 
   const handleCustomerInfoChange = (field: keyof CustomerInfo, value: string) => {
@@ -73,7 +104,7 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
             <CheckCircle className="w-10 h-10 text-green-600" />
           </div>
           <h3 className="text-2xl font-bold text-gray-900 mb-2">Success!</h3>
-          
+
           {/* Payment/Email Status Messages */}
           {paymentMessage ? (
             <div className="mb-6">
@@ -93,7 +124,7 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
               If you do not see it, please check your spam folder in your mail.
             </p>
           )}
-          
+
           {/* <div className="animate-pulse">
             <div className="flex items-center justify-center space-x-2">
               <Download className="w-5 h-5 text-blue-600" />
@@ -111,7 +142,7 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
             <XCircle className="w-10 h-10 text-red-600" />
           </div>
           <h3 className="text-2xl font-bold text-gray-900 mb-2">Payment Failed</h3>
-          
+
           {/* Payment Error Message */}
           {paymentMessage ? (
             <p className="text-gray-600 mb-6">{paymentMessage}</p>
@@ -120,7 +151,7 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
               There was an issue processing your payment. Please try again or contact support.
             </p>
           )}
-          
+
           <div className="flex justify-center space-x-4">
             <button
               onClick={() => onPurchase(selectedProject)}
@@ -174,24 +205,6 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
                 required
               />
             </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                <div className="flex items-center">
-                  <Mail className="w-4 h-4 mr-2" />
-                  Email Address *
-                </div>
-              </label>
-              <input
-                type="email"
-                value={localCustomerInfo.email}
-                onChange={(e) => handleCustomerInfoChange('email', e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Enter your email address"
-                required
-              />
-            </div>
-            
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 <div className="flex items-center">
@@ -208,6 +221,103 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
                 required
               />
             </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                <div className="flex items-center">
+                  <Mail className="w-4 h-4 mr-2" />
+                  Email Address *
+                </div>
+              </label>
+              <input
+                type="email"
+                value={localCustomerInfo.email}
+                onChange={(e) => {
+                  handleCustomerInfoChange('email', e.target.value);
+                  resetOtp();
+                }}
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Enter your email address"
+                required
+              />
+              {/* OTP Section */}
+              {/* OTP Section */}
+              <div className="mt-2 space-y-2">
+
+                {!otpSent && (
+                  <button
+                    type="button"
+                    onClick={() => sendOtp(localCustomerInfo.email)}
+                    disabled={sendingOtp || !localCustomerInfo.email}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
+                  >
+                    {sendingOtp ? 'Sending OTP...' : 'Send OTP'}
+                  </button>
+                )}
+
+                {otpSent && !otpVerified && (
+                  <>
+                    <input
+                      type="text"
+                      value={otp}
+                      onChange={(e) => setOtp(e.target.value)}
+                      placeholder="Enter 6-digit OTP"
+                      maxLength={6}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    />
+
+                    <div className="flex justify-between text-sm text-gray-600">
+                      {!otpExpired ? (
+                        <span>
+                          Expires in{' '}
+                          <strong className={otpRemainingSeconds < 30 ? 'text-red-600' : ''}>
+                            {Math.floor(otpRemainingSeconds / 60)}:
+                            {(otpRemainingSeconds % 60).toString().padStart(2, '0')}
+                          </strong>
+                        </span>
+                      ) : (
+                        <span className="text-red-600 font-medium">
+                          OTP expired
+                        </span>
+                      )}
+                    </div>
+
+
+                    <div className="flex gap-3">
+                      <button
+                        type="button"
+                        onClick={() => verifyOtp(localCustomerInfo.email)}
+                        disabled={verifyingOtp || otp.length < 6 || otpExpired}
+                        className="flex-1 px-4 py-2 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700 disabled:opacity-50"
+                      >
+                        {verifyingOtp ? 'Verifying...' : 'Verify OTP'}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => sendOtp(localCustomerInfo.email)}
+                        disabled={!otpExpired || sendingOtp}
+                        className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium hover:bg-gray-100 disabled:opacity-50"
+                      >
+                        Resend OTP
+                      </button>
+                    </div>
+                  </>
+                )}
+
+                {otpVerified && (
+                  <p className="text-green-600 text-sm font-medium">
+                    ✓ Email verified successfully
+                  </p>
+                )}
+
+              </div>
+
+
+
+            </div>
+
+
           </div>
         </div>
       );
@@ -228,15 +338,14 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
         <div>
           <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
             <h2 className="text-2xl font-bold text-gray-900">{selectedProject.title}</h2>
-            <div className={`text-xl font-bold px-4 py-2 rounded-lg ${
-              selectedProject.price === 0 
-                ? 'bg-green-100 text-green-700' 
-                : 'bg-blue-100 text-blue-700'
-            }`}>
+            <div className={`text-xl font-bold px-4 py-2 rounded-lg ${selectedProject.price === 0
+              ? 'bg-green-100 text-green-700'
+              : 'bg-blue-100 text-blue-700'
+              }`}>
               {getPriceDisplay(selectedProject.price)}
             </div>
           </div>
-          
+
           <p className="text-gray-600 text-lg">{selectedProject.description}</p>
         </div>
 
@@ -249,8 +358,8 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
               </h4>
               <div className="flex flex-wrap gap-2">
                 {selectedProject.category.split(', ').map((cat, index) => (
-                  <span 
-                    key={index} 
+                  <span
+                    key={index}
                     className="bg-blue-50 text-blue-700 px-3 py-1.5 rounded-full text-sm font-medium border border-blue-100"
                   >
                     {cat.trim()}
@@ -267,7 +376,7 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
                   <div className="text-sm">{formatDate(selectedProject.created_at)}</div>
                 </div>
               </div>
-              
+
               <div className="flex items-center text-gray-600">
                 <Clock className="w-5 h-5 mr-3 text-gray-400" />
                 <div>
@@ -297,7 +406,7 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
                     <span className="text-sm text-green-600 font-medium">Included</span>
                   </div>
                 )}
-                
+
                 {selectedProject.code_files && (
                   <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
                     <div className="flex items-center">
@@ -310,7 +419,7 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
                     <span className="text-sm text-green-600 font-medium">Included</span>
                   </div>
                 )}
-                
+
                 <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
                   <div className="flex items-center">
                     <Database className="w-5 h-5 mr-3 text-purple-500" />
@@ -357,18 +466,22 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
         return (
           <div className="flex flex-col sm:flex-row gap-4">
             <button
-              onClick={onBackToProject}
+              onClick={() => {
+                resetOtp();
+                onBackToProject();
+              }}
               className="flex-1 py-3 rounded-xl font-semibold border-2 border-gray-300 text-gray-700 hover:bg-gray-50 transition-all duration-300 cursor-pointer"
             >
               Back to Project
             </button>
             <button
               onClick={handlePurchaseClick}
-              className={`flex-1 py-3 rounded-xl font-semibold transition-all duration-300 cursor-pointer ${
-                selectedProject.price === 0
-                  ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:shadow-lg'
-                  : 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:shadow-lg'
-              }`}
+              disabled={!canProceedtoPurchase || !otpVerified}
+              className={`flex-1 py-3 rounded-xl font-semibold transition-all duration-300
+  ${canProceedtoPurchase
+                  ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:shadow-lg'
+                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                }`}
             >
               {selectedProject.price === 0 ? (
                 <div className="flex items-center justify-center">
@@ -387,11 +500,11 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
         <div className="flex flex-col sm:flex-row gap-4">
           <button
             onClick={handlePurchaseClick}
-            className={`flex-1 py-3 rounded-xl font-semibold transition-all duration-300 cursor-pointer ${
-              selectedProject.price === 0
-                ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:shadow-lg'
-                : 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:shadow-lg'
-            }`}
+            // disabled={!canProceedtoPurchase}
+            className={`flex-1 py-3 rounded-xl font-semibold transition-all duration-300 cursor-pointer ${selectedProject.price === 0
+              ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:shadow-lg'
+              : 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:shadow-lg'
+              }`}
           >
             {selectedProject.price === 0 ? (
               <div className="flex items-center justify-center">
@@ -449,11 +562,11 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
 
   return (
     <>
-      <div 
+      <div
         className="fixed inset-0 bg-black/30 bg-opacity-100 z-[9999]"
         onClick={onClose}
       ></div>
-      
+
       <div className="fixed inset-0 flex items-center justify-center p-4 z-[10000]">
         <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
           <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-white">

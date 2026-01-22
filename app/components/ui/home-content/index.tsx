@@ -17,38 +17,29 @@ const HomeContent: React.FC<HeaderProps> = ({ currentView, setCurrentView }) => 
   const [error, setError] = useState<string | null>(null);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
-  const {
-  paymentStatus,
-  customerInfo,
-  showCustomerForm,
-  paymentMessage,
-  setCustomerInfo,
-  setShowCustomerForm,
-  setPaymentStatus,
-  handlePurchase
-} = useProjectPurchase();
+  const purchase = useProjectPurchase();
   useEffect(() => {
     fetchProjects();
   }, []);
-//   useEffect(() => {
-//   if (paymentStatus === 'success') {
-//     const timer = setTimeout(() => {
-//       setIsDetailsModalOpen(false);
-//       setPaymentStatus('pending');
-//       setCustomerInfo({ name: '', email: '', phone: '' });
-//       setShowCustomerForm(false);
-//     }, 3000); // allow download to start
+  //   useEffect(() => {
+  //   if (paymentStatus === 'success') {
+  //     const timer = setTimeout(() => {
+  //       setIsDetailsModalOpen(false);
+  //       setPaymentStatus('pending');
+  //       setCustomerInfo({ name: '', email: '', phone: '' });
+  //       setShowCustomerForm(false);
+  //     }, 3000); // allow download to start
 
-//     return () => clearTimeout(timer);
-//   }
-// }, [paymentStatus]);
+  //     return () => clearTimeout(timer);
+  //   }
+  // }, [paymentStatus]);
 
   const fetchProjects = async () => {
     try {
       setLoading(true);
       const response = await fetch(`${API_BASE_URL}/projects.php`);
       const data = await response.json();
-      
+
       if (data.status === 'success') {
         setProjects(data.data);
       } else {
@@ -65,9 +56,9 @@ const HomeContent: React.FC<HeaderProps> = ({ currentView, setCurrentView }) => 
   const handleViewDetails = (project: Project) => {
     setSelectedProject(project);
     setIsDetailsModalOpen(true);
-    setPaymentStatus('pending');
-    setShowCustomerForm(false);
-    setCustomerInfo({ name: '', email: '', phone: '' });
+    purchase.setPaymentStatus('pending');
+    purchase.setShowCustomerForm(false);
+    purchase.setCustomerInfo({ name: '', email: '', phone: '' });
   };
 
   const handleBrowseProjects = () => {
@@ -86,15 +77,15 @@ const HomeContent: React.FC<HeaderProps> = ({ currentView, setCurrentView }) => 
   };
   const handleCloseModal = () => {
     setIsDetailsModalOpen(false);
-    setPaymentStatus('pending');
-    setCustomerInfo({ name: '', email: '', phone: '' });
-    setShowCustomerForm(false);
+    purchase.setPaymentStatus('pending');
+    purchase.setCustomerInfo({ name: '', email: '', phone: '' });
+    purchase.setShowCustomerForm(false);
   };
 
   const handleBackToProject = () => {
-    setShowCustomerForm(false);
-    setCustomerInfo({ name: '', email: '', phone: '' });
-    console.log('Customer Info', customerInfo);
+    purchase.setShowCustomerForm(false);
+    purchase.setCustomerInfo({ name: '', email: '', phone: '' });
+    console.log('Customer Info', purchase.customerInfo);
   };
 
   if (loading) {
@@ -115,7 +106,7 @@ const HomeContent: React.FC<HeaderProps> = ({ currentView, setCurrentView }) => 
           <div className="text-red-500 text-4xl mb-4">⚠️</div>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Error Loading Projects</h2>
           <p className="text-gray-600 mb-4">{error}</p>
-          <button 
+          <button
             onClick={fetchProjects}
             className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-lg font-semibold hover:shadow-lg transition-all duration-300"
           >
@@ -128,7 +119,7 @@ const HomeContent: React.FC<HeaderProps> = ({ currentView, setCurrentView }) => 
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
-      <HeroSection 
+      <HeroSection
         onBrowseProjects={handleBrowseProjects}
         onViewFreeProjects={handleViewFreeProjects}
       />
@@ -154,10 +145,10 @@ const HomeContent: React.FC<HeaderProps> = ({ currentView, setCurrentView }) => 
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {projects.slice(0, 6).map((project) => (
-              <ProjectCard 
-                key={project.id} 
-                project={project} 
-                onViewDetails={handleViewDetails} 
+              <ProjectCard
+                key={project.id}
+                project={project}
+                onViewDetails={handleViewDetails}
               />
             ))}
           </div>
@@ -171,15 +162,27 @@ const HomeContent: React.FC<HeaderProps> = ({ currentView, setCurrentView }) => 
       <ProjectModal
         selectedProject={selectedProject}
         isOpen={isDetailsModalOpen}
-        paymentStatus={paymentStatus}
-        customerInfo={customerInfo}
-        showCustomerForm={showCustomerForm}
+        paymentStatus={purchase.paymentStatus}
+        customerInfo={purchase.customerInfo}
+        showCustomerForm={purchase.showCustomerForm}
         onClose={handleCloseModal}
-        onPurchase={handlePurchase}
+        onPurchase={purchase.handlePurchase}
         onBackToProject={handleBackToProject}
-        onCustomerInfoChange={setCustomerInfo}
-        onShowCustomerForm={setShowCustomerForm}
-        paymentMessage={paymentMessage}
+        onCustomerInfoChange={purchase.setCustomerInfo}
+        onShowCustomerForm={purchase.setShowCustomerForm}
+        paymentMessage={purchase.paymentMessage}
+        sendOtp={purchase.sendOtp}
+        verifyOtp={purchase.verifyOtp}
+        resetOtp={purchase.resetOtp}
+        otp={purchase.otp}
+        otpSent={purchase.otpSent}
+        otpVerified={purchase.otpVerified}
+        sendingOtp={purchase.sendingOtp}
+        verifyingOtp={purchase.verifyingOtp}
+        canProceedtoPurchase={purchase.canProceedtoPurchase}
+        setOtp={purchase.setOtp}
+        otpRemainingSeconds={purchase.otpRemainingSeconds}
+        otpExpired={purchase.otpExpired}
       />
     </div>
   );

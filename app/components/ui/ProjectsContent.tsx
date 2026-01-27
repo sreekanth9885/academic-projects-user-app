@@ -13,31 +13,35 @@ export default function ProjectsContent() {
   const [error, setError] = useState<string | null>(null);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+
   const purchase = useProjectPurchase();
 
   useEffect(() => {
     fetchProjects();
-  }, []);
-//   useEffect(() => {
-//   if (paymentStatus === 'success') {
-//     const timer = setTimeout(() => {
-//       setIsDetailsModalOpen(false);
-//       setPaymentStatus('pending');
-//       setCustomerInfo({ name: '', email: '', phone: '' });
-//       setShowCustomerForm(false);
-//     }, 1500); // allow download to start
+  }, [page]);
+  //   useEffect(() => {
+  //   if (paymentStatus === 'success') {
+  //     const timer = setTimeout(() => {
+  //       setIsDetailsModalOpen(false);
+  //       setPaymentStatus('pending');
+  //       setCustomerInfo({ name: '', email: '', phone: '' });
+  //       setShowCustomerForm(false);
+  //     }, 1500); // allow download to start
 
-//     return () => clearTimeout(timer);
-//   }
-// }, [paymentStatus]);
+  //     return () => clearTimeout(timer);
+  //   }
+  // }, [paymentStatus]);
   const fetchProjects = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_BASE_URL}/projects.php`);
+      const response = await fetch(`${API_BASE_URL}/projects.php?page=${page}&limit=6`);
       const data = await response.json();
 
       if (data.status === 'success') {
         setProjects(data.data);
+        setTotalPages(data.pagination.pages);
       } else {
         setError('Failed to fetch projects');
       }
@@ -107,6 +111,33 @@ export default function ProjectsContent() {
       </div>
     );
   }
+  const getVisiblePages = () => {
+    const delta = 2;
+    const pages: (number | '...')[] = [];
+
+    const rangeStart = Math.max(2, page - delta);
+    const rangeEnd = Math.min(totalPages - 1, page + delta);
+
+    pages.push(1);
+
+    if (rangeStart > 2) {
+      pages.push('...');
+    }
+
+    for (let i = rangeStart; i <= rangeEnd; i++) {
+      pages.push(i);
+    }
+
+    if (rangeEnd < totalPages - 1) {
+      pages.push('...');
+    }
+
+    if (totalPages > 1) {
+      pages.push(totalPages);
+    }
+
+    return pages;
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
@@ -148,19 +179,19 @@ export default function ProjectsContent() {
                       )}
                     </div>
                     <div className="text-right">
-                                {project.actual_price > project.price && project.price > 0 && (
-                                  <div className="text-sm text-red-800 line-through">
-                                    ₹{project.actual_price}
-                                  </div>
-                                )}
-                    
-                                <div
-                                  className={`text-lg font-bold ${project.price === 0 ? 'text-green-600' : 'text-gray-900'
-                                    }`}
-                                >
-                                  {getPriceDisplay(project.price)}
-                                </div>
-                              </div>
+                      {project.actual_price > project.price && project.price > 0 && (
+                        <div className="text-sm text-red-800 line-through">
+                          ₹{project.actual_price}
+                        </div>
+                      )}
+
+                      <div
+                        className={`text-lg font-bold ${project.price === 0 ? 'text-green-600' : 'text-gray-900'
+                          }`}
+                      >
+                        {getPriceDisplay(project.price)}
+                      </div>
+                    </div>
                   </div>
 
                   <h3 className="text-xl font-bold text-gray-900 mb-3 line-clamp-1">{project.title}</h3>
@@ -191,8 +222,8 @@ export default function ProjectsContent() {
                   <button
                     onClick={() => handleViewDetails(project)}
                     className={`w-full py-3 rounded-xl font-semibold hover:shadow-lg transition-all duration-300 cursor-pointer ${project.price === 0
-                        ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white'
-                        : 'bg-gradient-to-r from-blue-600 to-purple-600 text-white'
+                      ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white'
+                      : 'bg-gradient-to-r from-blue-600 to-purple-600 text-white'
                       }`}
                   >
                     {project.price === 0 ? 'Download Free' : 'View Details'}
@@ -215,30 +246,76 @@ export default function ProjectsContent() {
           onShowCustomerForm={setShowCustomerForm}
         /> */}
         <ProjectModal
-        selectedProject={selectedProject}
-        isOpen={isDetailsModalOpen}
-        paymentStatus={purchase.paymentStatus}
-        customerInfo={purchase.customerInfo}
-        showCustomerForm={purchase.showCustomerForm}
-        onClose={() => setIsDetailsModalOpen(false)}
-        onPurchase={purchase.handlePurchase}
-        onBackToProject={handleBackToProject}
-        onCustomerInfoChange={purchase.setCustomerInfo}
-        onShowCustomerForm={purchase.setShowCustomerForm}
-        paymentMessage={purchase.paymentMessage}
-        sendOtp={purchase.sendOtp}
-        verifyOtp={purchase.verifyOtp}
-        resetOtp={purchase.resetOtp}
-        otp={purchase.otp}
-        otpSent={purchase.otpSent}
-        otpVerified={purchase.otpVerified}
-        sendingOtp={purchase.sendingOtp}
-        verifyingOtp={purchase.verifyingOtp}
-        canProceedtoPurchase={purchase.canProceedtoPurchase}
-        setOtp={purchase.setOtp}
-        otpRemainingSeconds={purchase.otpRemainingSeconds}
-        otpExpired={purchase.otpExpired}
-      />
+          selectedProject={selectedProject}
+          isOpen={isDetailsModalOpen}
+          paymentStatus={purchase.paymentStatus}
+          customerInfo={purchase.customerInfo}
+          showCustomerForm={purchase.showCustomerForm}
+          onClose={() => setIsDetailsModalOpen(false)}
+          onPurchase={purchase.handlePurchase}
+          onBackToProject={handleBackToProject}
+          onCustomerInfoChange={purchase.setCustomerInfo}
+          onShowCustomerForm={purchase.setShowCustomerForm}
+          paymentMessage={purchase.paymentMessage}
+          sendOtp={purchase.sendOtp}
+          verifyOtp={purchase.verifyOtp}
+          resetOtp={purchase.resetOtp}
+          otp={purchase.otp}
+          otpSent={purchase.otpSent}
+          otpVerified={purchase.otpVerified}
+          sendingOtp={purchase.sendingOtp}
+          verifyingOtp={purchase.verifyingOtp}
+          canProceedtoPurchase={purchase.canProceedtoPurchase}
+          setOtp={purchase.setOtp}
+          otpRemainingSeconds={purchase.otpRemainingSeconds}
+          otpExpired={purchase.otpExpired}
+        />
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex justify-center items-center gap-2 mt-12">
+            <button
+              disabled={page === 1}
+              onClick={() => setPage(prev => prev - 1)}
+              className={`px-4 py-2 rounded-lg font-medium ${page === 1
+                ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                : 'bg-white border hover:bg-gray-100'
+                }`}
+            >
+              Prev
+            </button>
+
+            {getVisiblePages().map((p, index) =>
+              p === '...' ? (
+                <span key={`dots-${index}`} className="px-3 py-2 text-gray-400">
+                  …
+                </span>
+              ) : (
+                <button
+                  key={p}
+                  onClick={() => setPage(p)}
+                  className={`px-4 py-2 rounded-lg font-semibold ${page === p
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-white border hover:bg-gray-100'
+                    }`}
+                >
+                  {p}
+                </button>
+              )
+            )}
+
+
+            <button
+              disabled={page === totalPages}
+              onClick={() => setPage(prev => prev + 1)}
+              className={`px-4 py-2 rounded-lg font-medium ${page === totalPages
+                ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                : 'bg-white border hover:bg-gray-100'
+                }`}
+            >
+              Next
+            </button>
+          </div>
+        )}
 
         {/* Stats Section */}
         {projects.length > 0 && (
@@ -259,8 +336,8 @@ export default function ProjectsContent() {
               </div>
               <div className="bg-white p-6 rounded-xl text-center shadow-lg">
                 <div className="text-3xl font-bold text-purple-600 mb-2">
-                  ${projects.reduce((sum, p) => sum + p.price, 0)}
-                </div>
+  ₹{projects.reduce((sum, p) => sum + p.price, 0).toFixed(2)}
+</div>
                 <div className="text-gray-700 font-semibold">Total Value</div>
               </div>
               <div className="bg-white p-6 rounded-xl text-center shadow-lg">

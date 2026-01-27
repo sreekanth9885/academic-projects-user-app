@@ -5,8 +5,16 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "ProjectHub - Academic Marketplace",
-  description: "Complete academic projects for students",
+  title: "Academic Projects for Students | Radiant Software Solutions",
+  description: "Download academic projects for students with source code, documentation, and database. Final year projects available.",
+  
+  keywords: [
+    'academic projects',
+    'student projects',
+    'final year projects',
+    'software projects',
+    'engineering projects',
+  ],
   icons: {
     icon: [
       {url:"/icon.png",type:"image/png"},

@@ -155,13 +155,13 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
           <div className="flex justify-center space-x-4">
             <button
               onClick={() => onPurchase(selectedProject)}
-              className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-semibold hover:shadow-lg transition-all duration-300"
+              className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-semibold hover:shadow-lg transition-all duration-300 cursor-pointer"
             >
               Try Again
             </button>
             <button
               onClick={onClose}
-              className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition-all duration-300"
+              className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition-all duration-300 cursor-pointer"
             >
               Close
             </button>
@@ -249,7 +249,7 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
                     type="button"
                     onClick={() => sendOtp(localCustomerInfo.email)}
                     disabled={sendingOtp || !localCustomerInfo.email}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
+                    className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 disabled:opacity-50 cursor-pointer"
                   >
                     {sendingOtp ? 'Sending OTP...' : 'Send OTP'}
                   </button>
@@ -288,7 +288,7 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
                         type="button"
                         onClick={() => verifyOtp(localCustomerInfo.email)}
                         disabled={verifyingOtp || otp.length < 6 || otpExpired}
-                        className="flex-1 px-4 py-2 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700 disabled:opacity-50"
+                        className="flex-1 px-4 py-2 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700 disabled:opacity-50 cursor-pointer"
                       >
                         {verifyingOtp ? 'Verifying...' : 'Verify OTP'}
                       </button>
@@ -297,7 +297,7 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
                         type="button"
                         onClick={() => sendOtp(localCustomerInfo.email)}
                         disabled={!otpExpired || sendingOtp}
-                        className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium hover:bg-gray-100 disabled:opacity-50"
+                        className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium hover:bg-gray-100 disabled:opacity-50 cursor-pointer"
                       >
                         Resend OTP
                       </button>
@@ -479,7 +479,7 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
               disabled={!canProceedtoPurchase || !otpVerified}
               className={`flex-1 py-3 rounded-xl font-semibold transition-all duration-300
   ${canProceedtoPurchase
-                  ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:shadow-lg'
+                  ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:shadow-lg cursor-pointer'
                   : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                 }`}
             >
@@ -530,7 +530,7 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
         <div className="text-center">
           <button
             onClick={onClose}
-            className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-semibold hover:shadow-lg transition-all duration-300"
+            className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-semibold hover:shadow-lg transition-all duration-300 cursor-pointer"
           >
             Close
           </button>
@@ -543,13 +543,13 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
         <div className="flex flex-col sm:flex-row gap-4">
           <button
             onClick={() => onPurchase(selectedProject)}
-            className="flex-1 py-3 rounded-xl font-semibold bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:shadow-lg transition-all duration-300"
+            className="flex-1 py-3 rounded-xl font-semibold bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:shadow-lg transition-all duration-300 cursor-pointer"
           >
             Try Again
           </button>
           <button
             onClick={onClose}
-            className="flex-1 py-3 rounded-xl font-semibold border-2 border-gray-300 text-gray-700 hover:bg-gray-50 transition-all duration-300"
+            className="flex-1 py-3 rounded-xl font-semibold border-2 border-gray-300 text-gray-700 hover:bg-gray-50 transition-all duration-300 cursor-pointer"
           >
             Close
           </button>

@@ -276,9 +276,9 @@ export default function ProjectsContent() {
             <button
               disabled={page === 1}
               onClick={() => setPage(prev => prev - 1)}
-              className={`px-4 py-2 rounded-lg font-medium ${page === 1
+              className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${page === 1
                 ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                : 'bg-white border hover:bg-gray-100'
+                : 'bg-white border hover:bg-gray-100 cursor-pointer'
                 }`}
             >
               Prev
@@ -293,9 +293,9 @@ export default function ProjectsContent() {
                 <button
                   key={p}
                   onClick={() => setPage(p)}
-                  className={`px-4 py-2 rounded-lg font-semibold ${page === p
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-white border hover:bg-gray-100'
+                  className={`px-4 py-2 rounded-lg font-semibold transition-all duration-200 ${page === p
+                      ? 'bg-blue-600 text-white cursor default'
+                      : 'bg-white border hover:bg-gray-100 cursor-pointer'
                     }`}
                 >
                   {p}
@@ -307,9 +307,9 @@ export default function ProjectsContent() {
             <button
               disabled={page === totalPages}
               onClick={() => setPage(prev => prev + 1)}
-              className={`px-4 py-2 rounded-lg font-medium ${page === totalPages
+              className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${page === totalPages
                 ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                : 'bg-white border hover:bg-gray-100'
+                : 'bg-white border hover:bg-gray-100 cursor-pointer'
                 }`}
             >
               Next
